@@ -485,21 +485,22 @@
 
     function cargarDatosServidor() {
       fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
-        .then(res => res.text()) // Recibir respuesta en texto plano para inspeccionar
-        .then(texto => {
-          try {
-            const datos = JSON.parse(texto);
-            listaUsuarios = datos.usuarios || [];
-            listaProductos = datos.productos || [];
-            renderCatalogo();
-            poblarFallbackClientes();
-          } catch (e) {
-            // Si no se puede interpretar como JSON, muestra lo que devolvió Google
-            alert("⚠️ Google devolvió HTML/Texto en lugar de datos:\n\n" + texto.substring(0, 200) + "...");
+        .then(res => res.json())
+        .then(datos => {
+          if (datos.error) {
+            alert("⚠️ Error desde el servidor: " + datos.error);
+            return;
           }
+          listaUsuarios = datos.usuarios || [];
+          listaProductos = datos.productos || [];
+          renderCatalogo();
+          poblarFallbackClientes();
         })
-        .catch(err => alert("⚠️ Error de conexión/CORS:\n" + err.message));
-    };
+        .catch(err => {
+          console.error("Error en fetch:", err);
+          alert("⚠️ Error de conexión. Revisa que el despliegue en Google Apps Script esté configurado para 'Cualquier persona'.");
+        });
+    }
 
     function mostrarVista(nombreVista) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -767,7 +768,7 @@
       document.getElementById('saldo-nombre').innerText = "🔍 Buscando...";
       document.getElementById('saldo-monto').innerText = "₡...";
 
-      fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" })
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
         .then(res => res.json())
         .then(datos => {
           listaUsuarios = datos.usuarios || [];
@@ -795,13 +796,13 @@
       const monto = Number(document.getElementById('input-monto-acreditar').value);
       const url = `${URL_WEB_APP}?accion=acreditarSaldo&cliente=${encodeURIComponent(clienteID)}&monto=${monto}`;
 
-      fetch(url, { redirect: "follow" })
+      fetch(url)
         .then(res => res.json())
         .then(res => {
           if (res.error) throw new Error(res.error);
           alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
           document.getElementById('input-monto-acreditar').value = 0;
-          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" });
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
         })
         .then(res => res ? res.json() : null)
         .then(datos => {
@@ -817,14 +818,14 @@
     function ejecutarPago(clienteID) {
       const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
 
-      fetch(url, { redirect: "follow" })
+      fetch(url)
         .then(res => res.json())
         .then(res => {
           if (res.error) throw new Error(res.error);
           alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
           carrito = [];
           renderCarrito();
-          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" });
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
         })
         .then(res => res ? res.json() : null)
         .then(datos => {
