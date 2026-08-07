@@ -236,17 +236,8 @@
       color: var(--success);
     }
 
-    .btn-primary {
-      background: var(--primary);
-      color: white;
-      margin-top: 12px;
-    }
-
-    .btn-success {
-      background: var(--success);
-      color: white;
-      margin-top: 12px;
-    }
+    .btn-primary { background: var(--primary); color: white; margin-top: 12px; }
+    .btn-success { background: var(--success); color: white; margin-top: 12px; }
 
     /* VISTA ACREDITAR */
     .quick-amounts {
@@ -275,6 +266,51 @@
       border-radius: 12px;
       border: 2px solid #ddd;
       margin-bottom: 15px;
+    }
+
+    /* COMPONENTE DE BÓVEDA Y MONEDAS */
+    .boveda-container {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .boveda-seccion {
+      margin-bottom: 12px;
+    }
+
+    .boveda-seccion-titulo {
+      font-size: 13px;
+      font-weight: bold;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .boveda-iconos {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      font-size: 32px;
+    }
+
+    .boveda-chip {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     /* MODAL DE ESCANEO NFC */
@@ -346,8 +382,8 @@
 
       <div class="menu-card consultar" onclick="mostrarVista('consultar')">
         <div class="icon">🔍</div>
-        <h2>Consultar Saldo</h2>
-        <p>Verifica cuánto dinero tienes guardado en tu tarjeta</p>
+        <h2>Consultar Bóveda</h2>
+        <p>Verifica tu saldo y tus bolsas de monedas</p>
       </div>
     </div>
   </div>
@@ -388,18 +424,31 @@
     </div>
   </div>
 
-  <!-- VISTA 3: CONSULTAR SALDO -->
+  <!-- VISTA 3: CONSULTAR SALDO Y BÓVEDA -->
   <div id="view-consultar" class="view">
-    <div class="carrito-box" style="text-align: center; padding: 30px 15px;">
-      <h2>🔍 Verificador de Saldo Express</h2>
-      <p style="color:#666;">Acerca la tarjeta al celular para consultar el saldo disponible</p>
+    <div class="carrito-box" style="text-align: center; padding: 24px 15px;">
+      <h2>🏛️ Mi Bóveda Virtual</h2>
+      <p style="color:#666; margin-bottom: 20px;">Acerca tu tarjeta para ver tus ahorros guardados</p>
 
-      <div id="saldo-resultado" style="display:none; margin: 20px 0;">
+      <div id="saldo-resultado" style="display:none; margin: 15px 0;">
         <h3 id="saldo-nombre" style="font-size: 24px; color: var(--primary); margin:0;">-</h3>
-        <div id="saldo-monto" style="font-size: 36px; font-weight: bold; color: var(--success); margin-top: 10px;">₡0</div>
+        <div id="saldo-monto" style="font-size: 34px; font-weight: bold; color: var(--success); margin: 8px 0;">₡0</div>
+
+        <!-- CONTENEDOR GRÁFICO DE MONEDAS Y BOLSAS -->
+        <div class="boveda-container">
+          <div class="boveda-seccion">
+            <div class="boveda-seccion-titulo">💰 Bolsas de Dinero (₡1,000 c/u)</div>
+            <div id="boveda-bolsas" class="boveda-iconos">-</div>
+          </div>
+
+          <div class="boveda-seccion" style="margin-top: 15px;">
+            <div class="boveda-seccion-titulo">🪙 Torres y Monedas (₡100 y ₡50)</div>
+            <div id="boveda-monedas" class="boveda-iconos">-</div>
+          </div>
+        </div>
       </div>
 
-      <button class="btn-touch btn-primary" onclick="iniciarConsultaNFC()">
+      <button class="btn-touch btn-primary" style="margin-top:20px;" onclick="iniciarConsultaNFC()">
         📡 Escanear Tarjeta NFC
       </button>
     </div>
@@ -410,7 +459,7 @@
     <div class="modal-content">
       <h3 id="modal-titulo">Acerca la Tarjeta NFC</h3>
       <div class="nfc-animation">📱✨</div>
-      <p id="modal-instruccion" style="color:#666;">Aproxime la tarjeta a la parte trasera de su teléfono...</p>
+      <p id="modal-instruccion" style="color:#666;">Aproxime la tarjeta a la parte trasera del teléfono...</p>
 
       <div id="fallback-manual" style="margin-top: 15px; display:none;">
         <hr>
@@ -424,15 +473,13 @@
   </div>
 
   <script>
-    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw_yy-a2sxePXUgjZMNkvKQbdaB1H76HKQybvw8y-Hpx7R2ptReDnPRwGAPKkVTd3Ji3Q/exec";
+    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw3ebDmfctZrs6z7GEsG-HhcMfY5WIXjtKa3qtj9LHgS6G0lky2GtRh_sDwRJX_kCqWog/exec";
 
     let listaProductos = [];
     let listaUsuarios = [];
     let carrito = [];
     let operacionPendiente = null;
-    let nfcAbortController = null;
 
-    // Cargar información inicial
     window.onload = () => {
       fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
         .then(res => res.json())
@@ -459,7 +506,7 @@
         btnHome.style.display = 'block';
         if (nombreVista === 'tienda') topTitle.innerText = "🛒 Pulpería";
         if (nombreVista === 'acreditar') topTitle.innerText = "💰 Acreditar";
-        if (nombreVista === 'consultar') topTitle.innerText = "🔍 Consultar";
+        if (nombreVista === 'consultar') topTitle.innerText = "🔍 Mi Bóveda";
       }
     }
 
@@ -563,20 +610,15 @@
       input.value = actual + monto;
     }
 
-    /* MODAL DE ESCANEO Y WEB NFC */
+    /* MODAL Y LECTOR NFC */
     function abrirModalNFC(operacion) {
       operacionPendiente = operacion;
-      document.getElementById('modal-instruccion').innerText = "Aproxime la tarjeta a la parte trasera de su teléfono...";
-      document.getElementById('fallback-manual').style.display = 'none';
       document.getElementById('modal-nfc').style.display = 'flex';
+      document.getElementById('modal-instruccion').innerText = "Aproxime la tarjeta a la parte trasera del teléfono...";
       iniciarLectorNFC();
     }
 
     function cerrarModalNFC() {
-      if (nfcAbortController) {
-        nfcAbortController.abort();
-        nfcAbortController = null;
-      }
       document.getElementById('modal-nfc').style.display = 'none';
       operacionPendiente = null;
     }
@@ -590,19 +632,10 @@
     }
 
     async function iniciarLectorNFC() {
-      if (nfcAbortController) {
-        nfcAbortController.abort();
-      }
-      nfcAbortController = new AbortController();
-
       if ('NDEFReader' in window) {
         try {
           const ndef = new NDEFReader();
-          await ndef.scan({ signal: nfcAbortController.signal });
-
-          ndef.onreadingerror = () => {
-            document.getElementById('modal-instruccion').innerText = "⚠️ Error leyendo la tarjeta. Intente de nuevo.";
-          };
+          await ndef.scan();
 
           ndef.onreading = event => {
             const uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
@@ -611,29 +644,19 @@
             if (event.message && event.message.records) {
               for (const record of event.message.records) {
                 if (record.recordType === "text") {
-                  try {
-                    // Remover prefijo de idioma en registros NDEF Text
-                    const dataView = new DataView(record.data.buffer);
-                    const langLen = dataView.getUint8(0) & 0x3F;
-                    const textDecoder = new TextDecoder(record.encoding || 'utf-8');
-                    textoNDEF = textDecoder.decode(new Uint8Array(record.data.buffer, 1 + langLen)).trim().toLowerCase();
-                  } catch (e) {
-                    const textDecoder = new TextDecoder();
-                    textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
-                  }
+                  const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+                  textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
                 }
               }
             }
 
-            procesarIdentificacion(uid, textoNDEF, "");
+            procesarIdentificacion(uid || textoNDEF);
           };
         } catch (error) {
-          if (error.name !== 'AbortError') {
-            mostrarFallbackManual("Lector NFC inactivo o permiso denegado.");
-          }
+          mostrarFallbackManual("Lector inactivo. Selecciona el usuario:");
         }
       } else {
-        mostrarFallbackManual("Este navegador no soporta NFC. Selecciona el usuario:");
+        mostrarFallbackManual("Tu navegador no soporta NFC directos.");
       }
     }
 
@@ -644,86 +667,102 @@
 
       document.getElementById('btn-confirmar-fallback').onclick = () => {
         const clienteSeleccionado = document.getElementById('select-cliente-fallback').value;
-        procesarIdentificacion("", "", clienteSeleccionado);
+        procesarIdentificacion(clienteSeleccionado);
       };
     }
 
-    // Normaliza cadenas eliminando caracteres especiales (dos puntos, guiones, espacios)
-    function limpiarID(str) {
-      return String(str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    }
-
-    // Busca coincidencias en listaUsuarios por UID, Texto NDEF o Nombre
-    function encontrarUsuario(uid, texto, manualName) {
-      if (!listaUsuarios || listaUsuarios.length === 0) return null;
-
-      const uidLimpio = limpiarID(uid);
-      const textoLimpio = limpiarID(texto);
-      const manualLimpio = limpiarID(manualName);
-
-      return listaUsuarios.find(u => {
-        const idNfcNorm = limpiarID(u.idNfc);
-        const nombreNorm = limpiarID(u.nombre);
-
-        if (uidLimpio && idNfcNorm === uidLimpio) return true;
-        if (textoLimpio && (idNfcNorm === textoLimpio || nombreNorm === textoLimpio)) return true;
-        if (manualLimpio && nombreNorm === manualLimpio) return true;
-        return false;
-      });
-    }
-
-    function procesarIdentificacion(uid = "", texto = "", manualName = "") {
-      const usuarioEncontrado = encontrarUsuario(uid, texto, manualName);
-      const identificadorFinal = usuarioEncontrado ? usuarioEncontrado.nombre : (manualName || texto || uid);
-
-      if (!identificadorFinal) {
-        alert("No se pudo identificar la tarjeta ni el usuario.");
+    function procesarIdentificacion(identificador) {
+      if (!identificador) {
+        alert("No se pudo leer la tarjeta.");
         return;
       }
 
-      const operacionActual = operacionPendiente;
       cerrarModalNFC();
 
-      if (operacionActual === 'pago') {
-        ejecutarPago(identificadorFinal);
-      } else if (operacionActual === 'acreditar') {
-        ejecutarAcreditacion(identificadorFinal);
-      } else if (operacionActual === 'consultar') {
-        ejecutarConsulta(identificadorFinal, usuarioEncontrado);
-      }
+      if (operacionPendiente === 'pago') ejecutarPago(identificador);
+      else if (operacionPendiente === 'acreditar') ejecutarAcreditacion(identificador);
+      else if (operacionPendiente === 'consultar') ejecutarConsulta(identificador);
     }
 
-    /* OPERACIONES CON SERVIDOR */
-    function iniciarProcesoPago() {
-      if (carrito.length === 0) {
-        alert("Agrega productos al carrito primero.");
-        return;
+    /* LÓGICA GRÁFICA DE LA BÓVEDA (BOLSAS Y MONEDAS) */
+    function renderizarBovedaGrafica(montoTotal) {
+      const bolsasDiv = document.getElementById('boveda-bolsas');
+      const monedasDiv = document.getElementById('boveda-monedas');
+
+      let monto = Math.max(Number(montoTotal) || 0, 0);
+
+      // Desglose: Bolsas (₡1,000), Monedas ₡100, Monedas ₡50
+      const bolsas1000 = Math.floor(monto / 1000);
+      let resto = monto % 1000;
+
+      const monedas100 = Math.floor(resto / 100);
+      resto = resto % 100;
+
+      const monedas50 = Math.floor(resto / 50);
+      const monedasSueltas = resto % 50;
+
+      // Render de Bolsas
+      if (bolsas1000 > 0) {
+        let htmlBolsas = "";
+        for (let i = 0; i < Math.min(bolsas1000, 10); i++) {
+          htmlBolsas += "💰 ";
+        }
+        if (bolsas1000 > 10) {
+          htmlBolsas += `<span class="boveda-chip">+${bolsas1000 - 10} más</span>`;
+        }
+        bolsasDiv.innerHTML = `${htmlBolsas} <br><span class="boveda-chip">${bolsas1000} bolsa(s) de ₡1,000</span>`;
+      } else {
+        bolsasDiv.innerHTML = `<span style="font-size:14px; color:#aaa;">Sin bolsas acumuladas</span>`;
       }
-      abrirModalNFC('pago');
+
+      // Render de Monedas
+      let htmlMonedas = "";
+      if (monedas100 > 0) {
+        htmlMonedas += `<span class="boveda-chip">🪙 ${monedas100} de ₡100</span> `;
+      }
+      if (monedas50 > 0) {
+        htmlMonedas += `<span class="boveda-chip">🪙 ${monedas50} de ₡50</span> `;
+      }
+      if (monedasSueltas > 0) {
+        htmlMonedas += `<span class="boveda-chip">🪙 ₡${monedasSueltas} sueltos</span>`;
+      }
+
+      if (!htmlMonedas) {
+        htmlMonedas = `<span style="font-size:14px; color:#aaa;">Sin monedas sueltas</span>`;
+      }
+
+      monedasDiv.innerHTML = htmlMonedas;
     }
 
-    function ejecutarPago(clienteID) {
-      const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
+    /* PETICIONES AL SERVIDOR CON ACTUALIZACIÓN EN TIEMPO REAL */
+    function ejecutarConsulta(clienteID) {
+      const resBox = document.getElementById('saldo-resultado');
+      resBox.style.display = 'block';
+      document.getElementById('saldo-nombre').innerText = "🔍 Buscando en servidor...";
+      document.getElementById('saldo-monto').innerText = "₡...";
 
-      fetch(url)
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
         .then(res => res.json())
-        .then(res => {
-          if (res.error) throw new Error(res.error);
-          alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
-          carrito = [];
-          renderCarrito();
-          mostrarVista('menu');
-        })
-        .catch(err => alert("❌ Error en el pago: " + err.message));
-    }
+        .then(datos => {
+          listaUsuarios = datos.usuarios || [];
+          listaProductos = datos.productos || [];
 
-    function iniciarAcreditacionNFC() {
-      const monto = Number(document.getElementById('input-monto-acreditar').value);
-      if (monto <= 0) {
-        alert("Ingresa un monto válido mayor a ₡0");
-        return;
-      }
-      abrirModalNFC('acreditar');
+          const usuario = listaUsuarios.find(u => 
+            u.nombre.toLowerCase() === clienteID.toLowerCase() || 
+            (u.idNfc && u.idNfc.toLowerCase() === clienteID.toLowerCase())
+          );
+
+          if (usuario) {
+            document.getElementById('saldo-nombre').innerText = `👤 ${usuario.nombre}`;
+            document.getElementById('saldo-monto').innerText = `₡${usuario.saldo.toLocaleString()}`;
+            renderizarBovedaGrafica(usuario.saldo);
+          } else {
+            document.getElementById('saldo-nombre').innerText = `⚠️ Usuario no encontrado`;
+            document.getElementById('saldo-monto').innerText = `₡0`;
+            renderizarBovedaGrafica(0);
+          }
+        })
+        .catch(err => alert("Error al consultar: " + err.message));
     }
 
     function ejecutarAcreditacion(clienteID) {
@@ -736,47 +775,41 @@
           if (res.error) throw new Error(res.error);
           alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
           document.getElementById('input-monto-acreditar').value = 0;
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
+        })
+        .then(res => res ? res.json() : null)
+        .then(datos => {
+          if (datos) {
+            listaUsuarios = datos.usuarios || [];
+            listaProductos = datos.productos || [];
+          }
           mostrarVista('menu');
         })
         .catch(err => alert("❌ Error al acreditar: " + err.message));
     }
 
-    function iniciarConsultaNFC() {
-      abrirModalNFC('consultar');
-    }
-
-    function ejecutarConsulta(clienteID, usuarioObjeto) {
-      const resBox = document.getElementById('saldo-resultado');
-      resBox.style.display = 'block';
-
-      // 1. Mensaje provisional
-      document.getElementById('saldo-nombre').innerText = "⏳ Consultando...";
-      document.getElementById('saldo-monto').innerText = "₡...";
-
-      // 2. Búsqueda en caché local
-      const usuarioLocal = usuarioObjeto || encontrarUsuario(clienteID, clienteID, clienteID);
-
-      // 3. Consulta remota en tiempo real
-      const url = `${URL_WEB_APP}?accion=consultarSaldo&cliente=${encodeURIComponent(clienteID)}`;
+    function ejecutarPago(clienteID) {
+      const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
 
       fetch(url)
         .then(res => res.json())
         .then(res => {
           if (res.error) throw new Error(res.error);
-
-          document.getElementById('saldo-nombre').innerText = `👤 ${res.nombre || res.cliente || (usuarioLocal ? usuarioLocal.nombre : clienteID)}`;
-          document.getElementById('saldo-monto').innerText = `₡${Number(res.saldo || 0).toLocaleString()}`;
+          alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
+          carrito = [];
+          renderCarrito();
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
         })
-        .catch(() => {
-          // Si falla la red, usar datos locales si existen
-          if (usuarioLocal) {
-            document.getElementById('saldo-nombre').innerText = `👤 ${usuarioLocal.nombre}`;
-            document.getElementById('saldo-monto').innerText = `₡${Number(usuarioLocal.saldo || 0).toLocaleString()}`;
-          } else {
-            document.getElementById('saldo-nombre').innerText = `💳 UID: ${clienteID}`;
-            document.getElementById('saldo-monto').innerText = `Tarjeta no registrada en Google Sheets`;
+        .then(res => res ? res.json() : null)
+        .then(datos => {
+          if (datos) {
+            listaUsuarios = datos.usuarios || [];
+            listaProductos = datos.productos || [];
+            renderCatalogo();
           }
-        });
+          mostrarVista('menu');
+        })
+        .catch(err => alert("❌ Error en el pago: " + err.message));
     }
   </script>
 </body>
