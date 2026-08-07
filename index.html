@@ -1,161 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verificador de Saldo</title>
-  
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #111827;
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      background: #111827; color: white; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
     }
-
     .card-container {
-      background: #1f2937;
-      border: 2px solid #374151;
-      border-radius: 24px;
-      padding: 25px;
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
+      background: #1f2937; border: 2px solid #374151; border-radius: 24px;
+      padding: 25px; width: 100%; max-width: 400px; text-align: center;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
-
     h1 { font-size: 1.5rem; color: #9ca3af; margin-bottom: 20px; }
-
     .btn-scan {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-      border: none;
-      padding: 18px 24px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-radius: 16px;
-      width: 100%;
-      cursor: pointer;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white;
+      border: none; padding: 18px 24px; font-size: 1.2rem; font-weight: bold;
+      border-radius: 16px; width: 100%; cursor: pointer;
       box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
-      transition: transform 0.2s, background 0.2s;
     }
-
     .btn-scan:active { transform: scale(0.96); }
-
-    /* Modal de Lectura */
     .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
     }
-
     .nfc-pulse {
-      width: 100px;
-      height: 100px;
-      background: #2563eb;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      margin-bottom: 20px;
-      animation: pulse 1.5s infinite;
+      width: 100px; height: 100px; background: #2563eb; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+      margin-bottom: 20px; animation: pulse 1.5s infinite;
     }
-
     @keyframes pulse {
       0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
       70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
       100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
     }
-
-    /* Modal de Respuesta con Saldo */
     .balance-box {
-      background: #1f2937;
-      border-radius: 24px;
-      padding: 25px;
-      width: 100%;
-      max-width: 380px;
-      text-align: center;
-      border: 1px solid #374151;
+      background: #1f2937; border-radius: 24px; padding: 25px;
+      width: 100%; max-width: 380px; text-align: center; border: 1px solid #374151;
       animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-
-    @keyframes popIn {
-      0% { transform: scale(0.7); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
+    @keyframes popIn { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     .user-name { font-size: 1.8rem; font-weight: bold; color: #f3f4f6; }
-    
-    .number-counter {
-      font-size: 3rem;
-      font-weight: 900;
-      color: #10b981;
-      margin: 10px 0;
-      text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-    }
-
-    /* Grilla Visual de Monedas y Lingotes */
+    .number-counter { font-size: 3rem; font-weight: 900; color: #10b981; margin: 10px 0; }
     .visual-vault {
-      background: #111827;
-      border-radius: 16px;
-      padding: 20px;
-      margin: 15px 0;
-      min-height: 120px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      justify-content: center;
-      border: 1px dashed #374151;
+      background: #111827; border-radius: 16px; padding: 20px; margin: 15px 0;
+      min-height: 120px; display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: center; border: 1px dashed #374151;
     }
-
-    .item-graphic {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-size: 2.2rem;
-      animation: dropDown 0.5s ease forwards;
-    }
-
-    .item-label {
-      font-size: 0.7rem;
-      color: #9ca3af;
-      font-weight: bold;
-      margin-top: 2px;
-    }
-
-    @keyframes dropDown {
-      0% { transform: translateY(-30px); opacity: 0; }
-      100% { transform: translateY(0); opacity: 1; }
-    }
-
-    .btn-close {
-      background: #374151;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-weight: bold;
-      margin-top: 10px;
-      cursor: pointer;
-      width: 100%;
-    }
+    .item-graphic { display: flex; flex-direction: column; align-items: center; font-size: 2.2rem; animation: dropDown 0.5s ease forwards; }
+    .item-label { font-size: 0.7rem; color: #9ca3af; font-weight: bold; margin-top: 2px; }
+    @keyframes dropDown { 0% { transform: translateY(-30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    .btn-close { background: #374151; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; width: 100%; }
   </style>
 </head>
 <body>
@@ -165,7 +66,6 @@
     <button class="btn-scan" onclick="iniciarEscaneoNFC()">💳 Acercar Tarjeta</button>
   </div>
 
-  <!-- Modal Leyendo NFC -->
   <div id="modalLectura" class="modal-overlay">
     <div class="nfc-pulse">📲</div>
     <h2>Acerca la tarjeta al celular</h2>
@@ -173,21 +73,20 @@
     <button class="btn-close" onclick="cerrarModales()" style="margin-top: 30px; width: auto;">Cancelar</button>
   </div>
 
-  <!-- Modal Resultado -->
   <div id="modalResultado" class="modal-overlay">
     <div class="balance-box">
       <div id="nombreUsuario" class="user-name">---</div>
       <div id="saldoNumero" class="number-counter">₡0</div>
-      
       <p style="font-size: 0.85rem; color: #9ca3af;">Representación gráfica en bóveda:</p>
-      
       <div id="bovedaGrafica" class="visual-vault"></div>
-
       <button class="btn-close" onclick="cerrarModales()">Entendido</button>
     </div>
   </div>
 
   <script>
+    // PEGA AQUÍ TU URL DE GOOGLE APPS SCRIPT
+    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw1DhPDKFEmutIwUpQHNB03BnJWdNORiZYEcW2eU8y5lsusJBbv4w8TSNmU6KdmreUZHQ/exec";
+
     let ndefController = null;
 
     async function iniciarEscaneoNFC() {
@@ -229,10 +128,10 @@
     }
 
     function consultarEnServidor(idNfc) {
-      google.script.run
-        .withSuccessHandler(renderizarResultado)
-        .withFailureHandler(err => { alert("Error: " + err.message); })
-        .consultarSaldoNFC(idNfc);
+      fetch(`${URL_WEB_APP}?idNfc=${encodeURIComponent(idNfc)}`)
+        .then(response => response.json())
+        .then(data => { renderizarResultado(data); })
+        .catch(err => { alert("Error al conectar con la base de datos: " + err.message); });
     }
 
     function renderizarResultado(res) {
@@ -240,14 +139,9 @@
         alert("❌ " + res.mensaje);
         return;
       }
-
       document.getElementById('nombreUsuario').innerText = res.nombre;
       document.getElementById('modalResultado').style.display = 'flex';
-
-      // 1. Animación del número
       animarContador(res.saldo);
-
-      // 2. Renderizar Gráficos (Lingotes y Monedas)
       dibujarBoveda(res.saldo);
     }
 
@@ -255,13 +149,9 @@
       const el = document.getElementById('saldoNumero');
       let actual = 0;
       const incremento = Math.ceil(saldoFinal / 30);
-      
       const timer = setInterval(() => {
         actual += incremento;
-        if (actual >= saldoFinal) {
-          actual = saldoFinal;
-          clearInterval(timer);
-        }
+        if (actual >= saldoFinal) { actual = saldoFinal; clearInterval(timer); }
         el.innerText = "₡" + actual.toLocaleString();
       }, 20);
     }
@@ -269,52 +159,26 @@
     function dibujarBoveda(saldoExacto) {
       const boveda = document.getElementById('bovedaGrafica');
       boveda.innerHTML = "";
-
-      // Redondeamos hacia abajo a múltiplos de 50
       const saldoGrafico = Math.floor(saldoExacto / 50) * 50;
-
-      // Cálculo de íconos
       const lingotes = Math.floor(saldoGrafico / 1000);
       let resto = saldoGrafico % 1000;
-
       const torres = Math.floor(resto / 100);
       resto = resto % 100;
-
       const monedas = Math.floor(resto / 50);
 
-      // Generar elementos HTML con delay de animación
       let delay = 0;
-
-      // Dibujar Lingotes (₡1,000)
       for (let i = 0; i < lingotes; i++) {
-        boveda.innerHTML += `
-          <div class="item-graphic" style="animation-delay: ${delay}s">
-            🧈
-            <span class="item-label">₡1,000</span>
-          </div>`;
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">🧈<span class="item-label">₡1,000</span></div>`;
         delay += 0.15;
       }
-
-      // Dibujar Torres (₡100)
       for (let i = 0; i < torres; i++) {
-        boveda.innerHTML += `
-          <div class="item-graphic" style="animation-delay: ${delay}s">
-            🪙
-            <span class="item-label">₡100</span>
-          </div>`;
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">🪙<span class="item-label">₡100</span></div>`;
         delay += 0.1;
       }
-
-      // Dibujar Monedas (₡50)
       for (let i = 0; i < monedas; i++) {
-        boveda.innerHTML += `
-          <div class="item-graphic" style="animation-delay: ${delay}s">
-            🟡
-            <span class="item-label">₡50</span>
-          </div>`;
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">🟡<span class="item-label">₡50</span></div>`;
         delay += 0.1;
       }
-
       if (lingotes === 0 && torres === 0 && monedas === 0) {
         boveda.innerHTML = `<span style="color: #6b7280;">Sin fondos en bóveda</span>`;
       }
