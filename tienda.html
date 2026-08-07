@@ -652,6 +652,7 @@
       operacionPendiente = operacion;
       document.getElementById('modal-nfc').style.display = 'flex';
       document.getElementById('modal-instruccion').innerText = "Aproxime la tarjeta a la parte trasera del teléfono...";
+      document.getElementById('fallback-manual').style.display = 'none';
       iniciarLectorNFC();
     }
 
@@ -676,25 +677,37 @@
           await ndef.scan();
 
           ndef.onreading = event => {
-            const uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
+            let uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
             let textoNDEF = "";
 
             if (event.message && event.message.records) {
               for (const record of event.message.records) {
                 if (record.recordType === "text") {
-                  const textDecoder = new TextDecoder(record.encoding || 'utf-8');
-                  textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
+                  const dataView = new DataView(record.data.buffer, record.data.byteOffset, record.data.byteLength);
+                  const statusByte = dataView.getUint8(0);
+                  const langLength = statusByte & 0x3F; // Longitud del código de idioma (ej. 'es', 'en')
+                  const encoding = (statusByte & 0x80) === 0 ? 'utf-8' : 'utf-16';
+
+                  const textData = new Uint8Array(
+                    record.data.buffer, 
+                    record.data.byteOffset + 1 + langLength, 
+                    record.data.byteLength - 1 - langLength
+                  );
+                  const textDecoder = new TextDecoder(encoding);
+                  textoNDEF = textDecoder.decode(textData).trim();
                 }
               }
             }
 
-            procesarIdentificacion(uid || textoNDEF);
+            const identificador = uid || textoNDEF;
+            procesarIdentificacion(identificador);
           };
         } catch (error) {
-          mostrarFallbackManual("Lector inactivo. Selecciona el usuario:");
+          console.error("Error NFC:", error);
+          mostrarFallbackManual("Lector inactivo o sin permisos.");
         }
       } else {
-        mostrarFallbackManual("Tu navegador no soporta NFC directos.");
+        mostrarFallbackManual("Tu navegador no soporta NFC directo.");
       }
     }
 
@@ -711,15 +724,29 @@
 
     function procesarIdentificacion(identificador) {
       if (!identificador) {
-        alert("No se pudo leer la tarjeta.");
+        alert("⚠️ Se detectó la tarjeta pero no se obtuvo un UID ni texto NDEF válido.");
+        return;
+      }
+
+      const idLimpio = identificador.toString().trim().toLowerCase();
+
+      // Buscar coincidencia en usuarios por Nombre o por idNfc
+      const usuarioEncontrado = listaUsuarios.find(u => 
+        (u.nombre && u.nombre.toLowerCase() === idLimpio) || 
+        (u.idNfc && u.idNfc.toString().toLowerCase() === idLimpio)
+      );
+
+      if (!usuarioEncontrado) {
+        alert(`⚠️ Tarjeta leída con éxito, pero NO coincide con ningún usuario.\n\nValor capturado: "${identificador}"\n\nAsegúrate de registrar este valor exacto en la columna 'idNfc' o 'nombre' de tu Google Sheet.`);
         return;
       }
 
       cerrarModalNFC();
 
-      if (operacionPendiente === 'pago') ejecutarPago(identificador);
-      else if (operacionPendiente === 'acreditar') ejecutarAcreditacion(identificador);
-      else if (operacionPendiente === 'consultar') ejecutarConsulta(identificador);
+      // Ejecutar la operación pendiente usando el nombre del usuario asignado
+      if (operacionPendiente === 'pago') ejecutarPago(usuarioEncontrado.nombre);
+      else if (operacionPendiente === 'acreditar') ejecutarAcreditacion(usuarioEncontrado.nombre);
+      else if (operacionPendiente === 'consultar') ejecutarConsulta(usuarioEncontrado.nombre);
     }
 
     /* DESGLOSE GRÁFICO DE BÓVEDA */
@@ -762,7 +789,7 @@
     }
 
     /* OPERACIONES CON EL SERVIDOR */
-    function ejecutarConsulta(clienteID) {
+    function ejecutarConsulta(nombreCliente) {
       const resBox = document.getElementById('saldo-resultado');
       resBox.style.display = 'block';
       document.getElementById('saldo-nombre').innerText = "🔍 Buscando...";
@@ -774,10 +801,7 @@
           listaUsuarios = datos.usuarios || [];
           listaProductos = datos.productos || [];
 
-          const usuario = listaUsuarios.find(u => 
-            u.nombre.toLowerCase() === clienteID.toLowerCase() || 
-            (u.idNfc && u.idNfc.toLowerCase() === clienteID.toLowerCase())
-          );
+          const usuario = listaUsuarios.find(u => u.nombre.toLowerCase() === nombreCliente.toLowerCase());
 
           if (usuario) {
             document.getElementById('saldo-nombre').innerText = `👤 ${usuario.nombre}`;
@@ -792,9 +816,9 @@
         .catch(err => alert("Error al consultar: " + err.message));
     }
 
-    function ejecutarAcreditacion(clienteID) {
+    function ejecutarAcreditacion(nombreCliente) {
       const monto = Number(document.getElementById('input-monto-acreditar').value);
-      const url = `${URL_WEB_APP}?accion=acreditarSaldo&cliente=${encodeURIComponent(clienteID)}&monto=${monto}`;
+      const url = `${URL_WEB_APP}?accion=acreditarSaldo&cliente=${encodeURIComponent(nombreCliente)}&monto=${monto}`;
 
       fetch(url)
         .then(res => res.json())
@@ -815,8 +839,8 @@
         .catch(err => alert("❌ Error al acreditar: " + err.message));
     }
 
-    function ejecutarPago(clienteID) {
-      const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
+    function ejecutarPago(nombreCliente) {
+      const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(nombreCliente)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
 
       fetch(url)
         .then(res => res.json())
@@ -840,4 +864,5 @@
     }
   </script>
 </body>
+
 </html>
