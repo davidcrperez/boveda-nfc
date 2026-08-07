@@ -90,43 +90,45 @@
     let ndefController = null;
 
     async function iniciarEscaneoNFC() {
-      if (!('NDEFReader' in window)) {
-        alert("⚠️ Web NFC no está disponible. Abre esta página en Google Chrome para Android.");
-        return;
-      }
+  if (!('NDEFReader' in window)) {
+    alert("⚠️ Web NFC no está disponible. Abre esta página en Google Chrome para Android.");
+    return;
+  }
 
-      document.getElementById('modalLectura').style.display = 'flex';
+  document.getElementById('modalLectura').style.display = 'flex';
 
-      try {
-        ndefController = new AbortController();
-        const ndef = new NDEFReader();
-        await ndef.scan({ signal: ndefController.signal });
+  try {
+    ndefController = new AbortController();
+    const ndef = new NDEFReader();
+    await ndef.scan({ signal: ndefController.signal });
 
-        ndef.addEventListener("reading", ({ message }) => {
-          let idNfc = "";
-          for (const record of message.records) {
-            if (record.recordType === "text") {
-              const textDecoder = new TextDecoder(record.encoding || "utf-8");
-              idNfc = textDecoder.decode(record.data);
-            }
-          }
+    // Ahora extraemos 'serialNumber' directamente de la lectura
+    ndef.addEventListener("reading", ({ message, serialNumber }) => {
+      let idNfc = serialNumber; // Usa el UID de fábrica por defecto
 
-          cerrarModales();
-          if (idNfc) {
-            consultarEnServidor(idNfc);
-          } else {
-            alert("La tarjeta se leyó pero no contiene texto formateado.");
-          }
-        });
-
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          alert("Error NFC: " + error.message);
-          cerrarModales();
+      // Si la tarjeta tiene texto grabado, lo usa como alternativa
+      for (const record of message.records) {
+        if (record.recordType === "text") {
+          const textDecoder = new TextDecoder(record.encoding || "utf-8");
+          idNfc = textDecoder.decode(record.data);
         }
       }
-    }
 
+      cerrarModales();
+      if (idNfc) {
+        consultarEnServidor(idNfc);
+      } else {
+        alert("No se pudo obtener la identidad de la tarjeta.");
+      }
+    });
+
+  } catch (error) {
+    if (error.name !== 'AbortError') {
+      alert("Error NFC: " + error.message);
+      cerrarModales();
+    }
+  }
+}
     function consultarEnServidor(idNfc) {
       fetch(`${URL_WEB_APP}?idNfc=${encodeURIComponent(idNfc)}`)
         .then(response => response.json())
