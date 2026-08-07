@@ -1,228 +1,449 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tienda Bóveda Digital</title>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #0f172a; color: white; min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; padding: 20px;
+      margin: 0;
+      padding: 15px;
+      background: #f4f6f8;
+      font-family: Arial, sans-serif;
     }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 1.8rem; color: #f8fafc; }
-    .header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
 
-    /* Catálogo de Productos */
-    .catalog {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-      width: 100%; max-width: 420px; margin-bottom: 20px;
+    .header {
+      background: white;
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
     }
-    .product-card {
-      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
-      padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s;
-    }
-    .product-card:active { transform: scale(0.95); background: #334155; }
-    .product-icon { font-size: 2.2rem; margin-bottom: 5px; }
-    .product-title { font-weight: 600; font-size: 0.95rem; color: #e2e8f0; }
-    .product-price { font-weight: bold; color: #10b981; margin-top: 4px; }
 
-    /* Seccion del Carrito / Total */
-    .cart-box {
-      background: #1e293b; border: 2px solid #3b82f6; border-radius: 20px;
-      padding: 20px; width: 100%; max-width: 420px; text-align: center;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-    }
-    .total-label { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; }
-    .total-amount { font-size: 2.8rem; font-weight: 900; color: #38bdf8; margin: 5px 0 15px 0; }
-    
-    .btn-action {
-      border: none; padding: 16px; font-size: 1.1rem; font-weight: bold;
-      border-radius: 14px; width: 100%; cursor: pointer; transition: background 0.2s;
-    }
-    .btn-pay { background: #2563eb; color: white; margin-bottom: 10px; }
-    .btn-pay:active { background: #1d4ed8; }
-    .btn-clear { background: #334155; color: #cbd5e1; font-size: 0.9rem; padding: 10px; }
+    h1 { margin: 0; color: #2196F3; }
+    .subtitulo { color: #666; margin-top: 5px; }
 
-    /* Modales */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 100; padding: 20px; text-align: center;
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      margin-top: 5px;
     }
-    .nfc-pulse {
-      width: 90px; height: 90px; background: #2563eb; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
-      margin-bottom: 20px; animation: pulse 1.5s infinite;
+
+    .info-saldo {
+      margin-top: 10px;
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 8px;
+      color: #0d47a1;
+      font-weight: bold;
     }
-    @keyframes pulse {
-      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
-      70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
-      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+
+    #catalogo {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
     }
-    .result-card {
-      background: #1e293b; border-radius: 24px; padding: 25px;
-      width: 100%; max-width: 380px; border: 1px solid #334155;
+
+    .titulo-categoria {
+      width: 100%;
+      grid-column: 1 / -1;
+      margin-top: 25px;
+      margin-bottom: 5px;
+      padding-bottom: 8px;
+      color: #1976D2;
+      border-bottom: 2px solid #2196F3;
+      font-size: 20px;
     }
+
+    .titulo-categoria:first-child {
+      margin-top: 0;
+    }
+
+    .producto {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0,0,0,.10);
+      transition: .2s;
+    }
+
+    .producto:hover { transform: translateY(-3px); }
+
+    .producto img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .producto-info { padding: 12px; text-align: center; }
+    .producto-info h3 { margin: 0; min-height: 40px; }
+
+    .precio {
+      color: #2e7d32;
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .stock { color: #777; margin-top: 5px; margin-bottom: 10px; }
+
+    .btn-agregar {
+      width: 100%;
+      border: none;
+      background: #4CAF50;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .btn-agregar:hover { background: #388E3C; }
+    .btn-agregar:disabled { background: #ccc; cursor: not-allowed; }
+
+    .carrito {
+      background: white;
+      margin-top: 25px;
+      padding: 15px;
+      border-radius: 15px;
+      box-shadow: 0 3px 10px rgba(0,0,0,.10);
+    }
+
+    .item-carrito { margin-bottom: 15px; }
+
+    .btn-cantidad {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: #2196F3;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-cantidad:disabled {
+      background: #b0bec5;
+      cursor: not-allowed;
+    }
+
+    .resumen-totales {
+      border-top: 2px solid #eee;
+      padding-top: 10px;
+      margin-top: 15px;
+    }
+
+    .total {
+      font-size: 22px;
+      color: #2e7d32;
+      font-weight: bold;
+    }
+
+    .saldo-final {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    .alerta-exceso {
+      background: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+    }
+
+    textarea {
+      width: 100%;
+      height: 80px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      resize: none;
+      margin-top: 10px;
+    }
+
+    .btn-enviar {
+      width: 100%;
+      background: #FF9800;
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 18px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .btn-enviar:hover { background: #F57C00; }
+    .btn-enviar:disabled { background: #ccc; cursor: not-allowed; }
   </style>
 </head>
+
 <body>
 
   <div class="header">
-    <h1>🛒 Tienda Digital</h1>
-    <p>Selecciona los artículos y cobra con la tarjeta NFC</p>
-  </div>
+    <h1>🛒 Pulpería Familiar</h1>
+    <div class="subtitulo">Escoge tus productos favoritos</div>
+    <br>
 
-  <!-- Catálogo de Productos Rapidos -->
-  <div class="catalog">
-    <div class="product-card" onclick="agregarMonto(100, '🧃 Jugo')">
-      <div class="product-icon">🧃</div>
-      <div class="product-title">Jugo / Snack</div>
-      <div class="product-price">+₡100</div>
-    </div>
-    <div class="product-card" onclick="agregarMonto(200, '🍿 Palomitas')">
-      <div class="product-icon">🍿</div>
-      <div class="product-title">Palomitas</div>
-      <div class="product-price">+₡200</div>
-    </div>
-    <div class="product-card" onclick="agregarMonto(500, '🍦 Helado')">
-      <div class="product-icon">🍦</div>
-      <div class="product-title">Helado</div>
-      <div class="product-price">+₡500</div>
-    </div>
-    <div class="product-card" onclick="agregarMonto(1000, '🎮 Tiempo Juego')">
-      <div class="product-icon">🎮</div>
-      <div class="product-title">Extra Pantalla</div>
-      <div class="product-price">+₡1,000</div>
+    <label><b>Cliente</b></label>
+    <select id="cliente" onchange="actualizarUsuarioSeleccionado()"></select>
+
+    <div id="infoSaldo" class="info-saldo">
+      💳 Saldo disponible: ₡<span id="saldoCliente">0</span>
     </div>
   </div>
 
-  <!-- Carrito de Cobro -->
-  <div class="cart-box">
-    <div class="total-label">Total a Cobrar</div>
-    <div id="montoTotal" class="total-amount">₡0</div>
-    <button class="btn-action btn-pay" onclick="iniciarCobro()">💳 Cobrar con NFC</button>
-    <button class="btn-action btn-clear" onclick="limpiarCarrito()">Vaciar Carrito</button>
+  <div id="catalogo">Cargando catálogo...</div>
+
+  <div class="carrito">
+    <h2>🛍️ Mi Carrito</h2>
+
+    <div id="carrito">Carrito vacío</div>
+
+    <div id="alertaExceso" class="alerta-exceso">
+      ⚠️ El total supera el saldo disponible del usuario.
+    </div>
+
+    <textarea id="comentario" placeholder="Comentario del pedido"></textarea>
+
+    <button id="btnEnviar" class="btn-enviar" onclick="enviarPedido()">
+      ✅ Enviar Pedido
+    </button>
   </div>
 
-  <!-- Modal Lectura NFC -->
-  <div id="modalLectura" class="modal-overlay">
-    <div class="nfc-pulse">📲</div>
-    <h2>Acerca la tarjeta para pagar</h2>
-    <p id="subtituloCobro" style="color: #94a3b8; margin-top: 8px;">Se cobrarán ₡0</p>
-    <button class="btn-action btn-clear" onclick="cerrarModales()" style="margin-top: 25px; width: auto;">Cancelar</button>
-  </div>
+<script>
+// ⚠️ SUSTITUYE ESTE ENLACE POR TU URL DE GOOGLE APPS SCRIPT (/exec)
+const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbwieyTaBUnjZDfvrKdtZIV648lhBih5UEOhI7gS84Or1MEki4laaD2G6VfNIFVofoEJJw/exec";
 
-  <!-- Modal Resultado -->
-  <div id="modalResultado" class="modal-overlay">
-    <div class="result-card">
-      <h2 id="tituloResultado" style="margin-bottom: 10px;">¡Pago Exitoso!</h2>
-      <p id="mensajeCliente" style="font-size: 1.1rem; color: #e2e8f0; margin-bottom: 15px;"></p>
-      <div style="background: #0f172a; border-radius: 12px; padding: 15px; margin-bottom: 15px;">
-        <span style="color: #94a3b8; font-size: 0.85rem;">Nuevo Saldo Disponible:</span>
-        <div id="nuevoSaldoTexto" style="font-size: 2rem; font-weight: bold; color: #10b981;">₡0</div>
+let carrito = [];
+let listaProductos = [];
+let listaUsuarios = [];
+let saldoUsuarioActual = 0;
+
+// Carga inicial mediante fetch HTTP
+fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
+  .then(res => res.json())
+  .then(datos => {
+    cargarUsuarios(datos.usuarios);
+    cargarProductos(datos.productos);
+  })
+  .catch(err => {
+    alert("Error al cargar la información: " + err.message);
+  });
+
+function cargarUsuarios(usuarios) {
+  listaUsuarios = usuarios || [];
+  const select = document.getElementById("cliente");
+  select.innerHTML = "";
+
+  listaUsuarios.forEach(u => {
+    select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
+  });
+
+  actualizarUsuarioSeleccionado();
+}
+
+function actualizarUsuarioSeleccionado() {
+  const nombreSeleccionado = document.getElementById("cliente").value;
+  const usuario = listaUsuarios.find(u => u.nombre === nombreSeleccionado);
+
+  if (usuario) {
+    saldoUsuarioActual = usuario.saldo;
+    document.getElementById("saldoCliente").innerText = saldoUsuarioActual.toLocaleString();
+  }
+  renderCarrito();
+}
+
+function cargarProductos(productos) {
+  listaProductos = productos || [];
+  const catalogo = document.getElementById("catalogo");
+  catalogo.innerHTML = "";
+
+  const categorias = listaProductos.reduce((acc, prod) => {
+    const cat = prod.categoria || "Otros";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(prod);
+    return acc;
+  }, {});
+
+  for (const [categoria, prods] of Object.entries(categorias)) {
+    catalogo.innerHTML += `<h2 class="titulo-categoria">📌 ${categoria}</h2>`;
+
+    prods.forEach(p => {
+      catalogo.innerHTML += `
+        <div class="producto">
+          <img src="${p.imagen}" alt="${p.producto}">
+          <div class="producto-info">
+            <h3>${p.producto}</h3>
+            <div class="precio">₡${p.precio}</div>
+            <div class="stock">Stock: ${p.inventario}</div>
+            <button
+              class="btn-agregar"
+              ${p.inventario <= 0 ? 'disabled' : ''}
+              onclick="agregar('${p.id}')">
+              ${p.inventario <= 0 ? 'Agotado' : '🛒 Agregar'}
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  }
+}
+
+function agregar(id) {
+  const prod = listaProductos.find(p => p.id === id);
+  const item = carrito.find(x => x.id === id);
+
+  if (!prod) return;
+
+  if (item) {
+    if (item.cantidad < prod.inventario) {
+      item.cantidad++;
+    } else {
+      alert("Alcanzaste el límite de stock disponible.");
+    }
+  } else {
+    if (prod.inventario > 0) {
+      carrito.push({
+        id: prod.id,
+        producto: prod.producto,
+        precio: prod.precio,
+        cantidad: 1,
+        inventario: prod.inventario
+      });
+    }
+  }
+  renderCarrito();
+}
+
+function aumentar(id) {
+  const item = carrito.find(x => x.id === id);
+  if (item) {
+    if (item.cantidad < item.inventario) {
+      item.cantidad++;
+      renderCarrito();
+    } else {
+      alert("No hay más unidades en stock.");
+    }
+  }
+}
+
+function disminuir(id) {
+  const item = carrito.find(x => x.id === id);
+  if (item) {
+    item.cantidad--;
+    if (item.cantidad <= 0) {
+      carrito = carrito.filter(x => x.id !== id);
+    }
+  }
+  renderCarrito();
+}
+
+function renderCarrito() {
+  const div = document.getElementById("carrito");
+  const alertaExceso = document.getElementById("alertaExceso");
+  const btnEnviar = document.getElementById("btnEnviar");
+  
+  let total = 0;
+  div.innerHTML = "";
+
+  if (carrito.length === 0) {
+    div.innerHTML = "Carrito vacío";
+    alertaExceso.style.display = "none";
+    btnEnviar.disabled = false;
+    return;
+  }
+
+  carrito.forEach(item => {
+    const subtotal = item.precio * item.cantidad;
+    total += subtotal;
+
+    div.innerHTML += `
+      <div class="item-carrito">
+        <b>${item.producto}</b>
+        <br><br>
+        <button class="btn-cantidad" onclick="disminuir('${item.id}')">-</button>
+        ${item.cantidad}
+        <button 
+          class="btn-cantidad" 
+          ${item.cantidad >= item.inventario ? 'disabled' : ''} 
+          onclick="aumentar('${item.id}')">+</button>
+        <br><br>
+        ₡${subtotal.toLocaleString()}
       </div>
-      <button class="btn-action btn-pay" onclick="cerrarModales(); limpiarCarrito();">Aceptar</button>
+      <hr>
+    `;
+  });
+
+  const saldoFinal = saldoUsuarioActual - total;
+
+  div.innerHTML += `
+    <div class="resumen-totales">
+      <div class="total">Total: ₡${total.toLocaleString()}</div>
+      <div class="saldo-final" style="color: ${saldoFinal < 0 ? '#c62828' : '#1565c0'}">
+        Saldo final: ₡${saldoFinal.toLocaleString()}
+      </div>
     </div>
-  </div>
+  `;
 
-  <script>
-    // ⚠️ REEMPLAZA ESTA URL CON TU LINK REAL DE GOOGLE APPS SCRIPT (TERMINADO EN /exec)
-    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbwieyTaBUnjZDfvrKdtZIV648lhBih5UEOhI7gS84Or1MEki4laaD2G6VfNIFVofoEJJw/exec";
+  if (total > saldoUsuarioActual) {
+    alertaExceso.style.display = "block";
+    btnEnviar.disabled = true;
+  } else {
+    alertaExceso.style.display = "none";
+    btnEnviar.disabled = false;
+  }
+}
 
-    let total = 0;
-    let ndefController = null;
+function enviarPedido() {
+  if (carrito.length === 0) {
+    alert("Debes agregar productos.");
+    return;
+  }
 
-    function agregarMonto(monto, nombre) {
-      total += monto;
-      actualizarPantallaTotal();
-    }
+  const cliente = document.getElementById("cliente").value;
+  const comentario = document.getElementById("comentario").value;
 
-    function limpiarCarrito() {
-      total = 0;
-      actualizarPantallaTotal();
-    }
+  const btn = document.getElementById("btnEnviar");
+  btn.disabled = true;
+  btn.innerText = "⏳ Procesando pedido...";
 
-    function actualizarPantallaTotal() {
-      document.getElementById('montoTotal').innerText = "₡" + total.toLocaleString();
-    }
+  const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(cliente)}&comentario=${encodeURIComponent(comentario)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
 
-    async function iniciarCobro() {
-      if (total <= 0) {
-        alert("⚠️ Selecciona al menos un producto para cobrar.");
-        return;
+  fetch(url)
+    .then(res => res.json())
+    .then(resultado => {
+      if (resultado.error) {
+        throw new Error(resultado.error);
       }
+      alert(
+        "✅ Pedido enviado\n\n" +
+        "Pedido: " + resultado.pedidoID +
+        "\nSaldo restante: ₡" + resultado.saldoRestante.toLocaleString()
+      );
+      location.reload();
+    })
+    .catch(error => {
+      alert("❌ " + error.message);
+      btn.disabled = false;
+      btn.innerText = "✅ Enviar Pedido";
+    });
+}
+</script>
 
-      if (!('NDEFReader' in window)) {
-        alert("⚠️ Web NFC no está disponible. Usa Chrome en Android.");
-        return;
-      }
-
-      document.getElementById('subtituloCobro').innerText = `Total a descontar: ₡${total.toLocaleString()}`;
-      document.getElementById('modalLectura').style.display = 'flex';
-
-      try {
-        ndefController = new AbortController();
-        const ndef = new NDEFReader();
-        await ndef.scan({ signal: ndefController.signal });
-
-        ndef.addEventListener("reading", ({ message, serialNumber }) => {
-          let idNfc = serialNumber || "";
-          for (const record of message.records) {
-            if (record.recordType === "text") {
-              const textDecoder = new TextDecoder(record.encoding || "utf-8");
-              idNfc = textDecoder.decode(record.data);
-            }
-          }
-
-          if (idNfc) {
-            procesarPago(idNfc);
-          } else {
-            alert("No se pudo leer la tarjeta.");
-            cerrarModales();
-          }
-        });
-
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          alert("Error NFC: " + error.message);
-          cerrarModales();
-        }
-      }
-    }
-
-    function procesarPago(idNfc) {
-      const url = `${URL_WEB_APP}?accion=comprar&idNfc=${encodeURIComponent(idNfc)}&monto=${total}`;
-
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          cerrarModales();
-          if (data.exito) {
-            document.getElementById('tituloResultado').innerText = "✅ ¡Pago Exitoso!";
-            document.getElementById('mensajeCliente').innerText = `Gracias ${data.nombre}, cobro procesado.`;
-            document.getElementById('nuevoSaldoTexto').innerText = "₡" + data.nuevoSaldo.toLocaleString();
-          } else {
-            document.getElementById('tituloResultado').innerText = "❌ Error en el Pago";
-            document.getElementById('mensajeCliente').innerText = data.mensaje;
-            document.getElementById('nuevoSaldoTexto').innerText = "--";
-          }
-          document.getElementById('modalResultado').style.display = 'flex';
-        })
-        .catch(err => {
-          cerrarModales();
-          alert("Error al conectar con la base de datos: " + err.message);
-        });
-    }
-
-    function cerrarModales() {
-      if (ndefController) ndefController.abort();
-      document.getElementById('modalLectura').style.display = 'none';
-      document.getElementById('modalResultado').style.display = 'none';
-    }
-  </script>
 </body>
 </html>
