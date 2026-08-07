@@ -478,6 +478,7 @@
     let listaUsuarios = [];
     let carrito = [];
     let operacionPendiente = null;
+    let lectorNDEFActivo = null;
 
     window.onload = () => {
       cargarDatosServidor();
@@ -498,7 +499,7 @@
         })
         .catch(err => {
           console.error("Error en fetch:", err);
-          alert("⚠️ Error de conexión. Revisa que el despliegue en Google Apps Script esté configurado para 'Cualquier persona'.");
+          alert("⚠️ Error de conexión con el servidor Google Apps Script.");
         });
     }
 
@@ -670,61 +671,59 @@
       });
     }
 
-    async function iniciarLectorNFC() {
-      if ('NDEFReader' in window) {
-        try {
-          const ndef = new NDEFReader();
-          await ndef.scan();
+    function iniciarLectorNFC() {
+      if (!('NDEFReader' in window)) {
+        mostrarFallbackManual("Tu navegador no soporta Web NFC (se requiere Chrome en Android bajo HTTPS).");
+        return;
+      }
 
-          ndef.addEventListener("readingerror", () => {
-            alert("⚠️ No se pudo leer la tarjeta. Manténla pegada al teléfono un segundo más.");
-          });
-
+      try {
+        const ndef = new NDEFReader();
+        ndef.scan().then(() => {
+          
           ndef.onreading = event => {
             try {
-              // Obtenemos UID físico
-              let uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
-              let textoNDEF = "";
+              let idLectura = "";
 
-              // Intento seguro de lectura de texto
-              if (event.message && event.message.records) {
+              // 1. Intentar extraer el UID serie de la tarjeta
+              if (event.serialNumber) {
+                idLectura = event.serialNumber.replace(/:/g, '').toLowerCase();
+              }
+
+              // 2. Si no hay UID, extraer datos de texto NDEF
+              if (!idLectura && event.message && event.message.records) {
                 for (const record of event.message.records) {
                   if (record.recordType === "text" && record.data) {
-                    try {
-                      const dataView = new DataView(record.data.buffer, record.data.byteOffset, record.data.byteLength);
-                      if (dataView.byteLength > 0) {
-                        const statusByte = dataView.getUint8(0);
-                        const langLength = statusByte & 0x3F;
-                        if (dataView.byteLength > 1 + langLength) {
-                          const textData = new Uint8Array(
-                            record.data.buffer, 
-                            record.data.byteOffset + 1 + langLength, 
-                            record.data.byteLength - 1 - langLength
-                          );
-                          const textDecoder = new TextDecoder(record.encoding || 'utf-8');
-                          textoNDEF = textDecoder.decode(textData).trim();
-                        }
-                      }
-                    } catch (errText) {
-                      console.warn("Fallo al decodificar texto NDEF, usando UID físico:", errText);
-                    }
+                    const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+                    idLectura = textDecoder.decode(record.data).trim();
                   }
                 }
               }
 
-              const identificador = uid || textoNDEF;
-              procesarIdentificacion(identificador);
+              // Alert de diagnóstico para saber qué está enviando la tarjeta
+              if (!idLectura) {
+                alert("📡 Tarjeta detectada pero está completamente vacía o bloqueada.");
+                return;
+              }
 
-            } catch (errInterno) {
-              alert("⚠️ Error procesando datos de la tarjeta: " + errInterno.message);
+              procesarIdentificacion(idLectura);
+
+            } catch (errProceso) {
+              alert("⚠️ Error en el procesamiento de la tarjeta: " + errProceso.message);
             }
           };
-        } catch (error) {
-          console.error("Error iniciando NFC:", error);
-          mostrarFallbackManual("Permiso de NFC denegado o lector inactivo.");
-        }
-      } else {
-        mostrarFallbackManual("Tu navegador no soporta Web NFC (requiere Chrome en Android mediante HTTPS).");
+
+          ndef.onreadingerror = () => {
+            alert("⚠️ Error al leer la tarjeta. Mantén la tarjeta firme unos segundos.");
+          };
+
+        }).catch(errScan => {
+          console.error("Error scan:", errScan);
+          mostrarFallbackManual("Permiso NFC denegado o NFC desactivado en el teléfono.");
+        });
+
+      } catch (errGrave) {
+        alert("Error crítico iniciando lector NFC: " + errGrave.message);
       }
     }
 
@@ -740,30 +739,26 @@
     }
 
     function procesarIdentificacion(identificador) {
-      if (!identificador) {
-        alert("⚠️ Se detectó la tarjeta pero no se obtuvo un UID ni texto válido.");
-        return;
-      }
-
       const idLimpio = identificador.toString().trim().toLowerCase();
 
-      // Buscar coincidencia en usuarios por Nombre o por idNfc
+      // Buscar coincidencia exacta por Nombre o por idNfc
       const usuarioEncontrado = listaUsuarios.find(u => 
         (u.nombre && u.nombre.toLowerCase() === idLimpio) || 
         (u.idNfc && u.idNfc.toString().toLowerCase() === idLimpio)
       );
 
       if (!usuarioEncontrado) {
-        alert(`⚠️ Tarjeta leída con éxito, pero NO está registrada.\n\nValor capturado: "${identificador}"\n\nCopia este valor exacto y pégalo en la columna 'idNfc' de tu Google Sheet.`);
+        alert(`⚠️ Lectura exitosa de la tarjeta.\n\nValor detectado: "${identificador}"\n\nEste valor no está asignado a ningún usuario en Google Sheets. Agrégalo en la columna 'idNfc'.`);
         return;
       }
 
+      const operacionEjecutar = operacionPendiente;
       cerrarModalNFC();
 
-      // Ejecutar la acción activa con el nombre del usuario asignado
-      if (operacionPendiente === 'pago') ejecutarPago(usuarioEncontrado.nombre);
-      else if (operacionPendiente === 'acreditar') ejecutarAcreditacion(usuarioEncontrado.nombre);
-      else if (operacionPendiente === 'consultar') ejecutarConsulta(usuarioEncontrado.nombre);
+      // Ejecutar la acción solicitada
+      if (operacionEjecutar === 'pago') ejecutarPago(usuarioEncontrado.nombre);
+      else if (operacionEjecutar === 'acreditar') ejecutarAcreditacion(usuarioEncontrado.nombre);
+      else if (operacionEjecutar === 'consultar') ejecutarConsulta(usuarioEncontrado.nombre);
     }
 
     /* DESGLOSE GRÁFICO DE BÓVEDA */
