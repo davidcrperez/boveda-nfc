@@ -53,13 +53,10 @@
       min-height: 120px; display: flex; flex-wrap: wrap; gap: 14px;
       align-items: center; justify-content: center; border: 1px dashed #374151;
     }
-    .item-graphic { display: flex; flex-direction: column; align-items: center; animation: dropDown 0.5s ease forwards; }
+    .item-graphic { display: flex; flex-direction: column; align-items: center; font-size: 2.2rem; animation: dropDown 0.5s ease forwards; }
     .item-label { font-size: 0.7rem; color: #9ca3af; font-weight: bold; margin-top: 4px; }
     @keyframes dropDown { 0% { transform: translateY(-30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     .btn-close { background: #374151; color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; width: 100%; }
-    
-    /* Diseños gráficos vectoriales */
-    .gold-bar-svg { width: 46px; height: 28px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
   </style>
 </head>
 <body>
@@ -87,6 +84,7 @@
   </div>
 
   <script>
+    // REEMPLAZA ESTA URL POR LA DE TU APPS SCRIPT
     const URL_WEB_APP = "https://script.google.com/macros/s/TU_CODIGO_AQUI/exec";
 
     let ndefController = null;
@@ -163,46 +161,26 @@
       const boveda = document.getElementById('bovedaGrafica');
       boveda.innerHTML = "";
       const saldoGrafico = Math.floor(saldoExacto / 50) * 50;
-      const lingotes = Math.floor(saldoGrafico / 1000);
+      const bolsas = Math.floor(saldoGrafico / 1000);
       let resto = saldoGrafico % 1000;
       const torres = Math.floor(resto / 100);
       resto = resto % 100;
       const monedas = Math.floor(resto / 50);
 
-      const lingoteSVG = `
-        <svg class="gold-bar-svg" viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 22L2 10H42L48 22H8Z" fill="url(#goldGrad1)"/>
-          <path d="M2 10L8 3H48L42 10H2Z" fill="url(#goldGrad2)"/>
-          <path d="M42 10L48 22V22L48 10H42Z" fill="#B45309"/>
-          <path d="M8 22L2 10H42L48 22H8Z" stroke="#78350F" stroke-width="0.8"/>
-          <path d="M2 10L8 3H48L42 10H2Z" stroke="#78350F" stroke-width="0.8"/>
-          <defs>
-            <linearGradient id="goldGrad1" x1="2" y1="10" x2="48" y2="22" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#FBBF24"/>
-              <stop offset="0.5" stop-color="#D97706"/>
-              <stop offset="1" stop-color="#92400E"/>
-            </linearGradient>
-            <linearGradient id="goldGrad2" x1="2" y1="3" x2="48" y2="10" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#FEF08A"/>
-              <stop offset="1" stop-color="#F59E0B"/>
-            </linearGradient>
-          </defs>
-        </svg>`;
-
       let delay = 0;
-      for (let i = 0; i < lingotes; i++) {
-        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">${lingoteSVG}<span class="item-label">₡1,000</span></div>`;
+      for (let i = 0; i < bolsas; i++) {
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">💰<span class="item-label">₡1,000</span></div>`;
         delay += 0.12;
       }
       for (let i = 0; i < torres; i++) {
-        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">💰<span class="item-label">₡1,000</span></div>`;
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">🪙<span class="item-label">₡100</span></div>`;
         delay += 0.08;
       }
       for (let i = 0; i < monedas; i++) {
-        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s; font-size: 2.2rem;">🟡<span class="item-label">₡50</span></div>`;
+        boveda.innerHTML += `<div class="item-graphic" style="animation-delay: ${delay}s">🟡<span class="item-label">₡50</span></div>`;
         delay += 0.08;
       }
-      if (lingotes === 0 && torres === 0 && monedas === 0) {
+      if (bolsas === 0 && torres === 0 && monedas === 0) {
         boveda.innerHTML = `<span style="color: #6b7280;">Sin fondos en bóveda</span>`;
       }
     }
