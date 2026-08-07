@@ -1,449 +1,715 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 
 <head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Bóveda & Pulpería NFC</title>
 
   <style>
+    :root {
+      --primary: #1976D2;
+      --primary-dark: #0d47a1;
+      --accent: #FF9800;
+      --success: #2E7D32;
+      --danger: #C62828;
+      --bg: #F4F6F8;
+      --card-bg: #FFFFFF;
+      --text: #212121;
+      --text-muted: #666666;
+      --radius: 16px;
+    }
+
     * {
       box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       margin: 0;
-      padding: 15px;
-      background: #f4f6f8;
-      font-family: Arial, sans-serif;
+      padding: 12px;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 30px;
     }
 
-    .header {
-      background: white;
-      border-radius: 15px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    /* BARRA SUPERIOR Y NAVEGACIÓN */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 15px;
     }
 
-    h1 { margin: 0; color: #2196F3; }
-    .subtitulo { color: #666; margin-top: 5px; }
-
-    select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      font-size: 16px;
-      margin-top: 5px;
+    .top-bar h1 {
+      font-size: 18px;
+      margin: 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .info-saldo {
-      margin-top: 10px;
+    .btn-nav-home {
       background: #e3f2fd;
-      padding: 10px;
-      border-radius: 8px;
-      color: #0d47a1;
+      color: var(--primary);
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
       font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
     }
 
-    #catalogo {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 15px;
+    /* VISTAS */
+    .view {
+      display: none;
     }
 
-    .titulo-categoria {
-      width: 100%;
-      grid-column: 1 / -1;
-      margin-top: 25px;
-      margin-bottom: 5px;
-      padding-bottom: 8px;
-      color: #1976D2;
-      border-bottom: 2px solid #2196F3;
-      font-size: 20px;
-    }
-
-    .titulo-categoria:first-child {
-      margin-top: 0;
-    }
-
-    .producto {
-      background: white;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 3px 10px rgba(0,0,0,.10);
-      transition: .2s;
-    }
-
-    .producto:hover { transform: translateY(-3px); }
-
-    .producto img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
+    .view.active {
       display: block;
     }
 
-    .producto-info { padding: 12px; text-align: center; }
-    .producto-info h3 { margin: 0; min-height: 40px; }
-
-    .precio {
-      color: #2e7d32;
-      font-size: 24px;
-      font-weight: bold;
-      margin-top: 8px;
-    }
-
-    .stock { color: #777; margin-top: 5px; margin-bottom: 10px; }
-
-    .btn-agregar {
-      width: 100%;
-      border: none;
-      background: #4CAF50;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    .btn-agregar:hover { background: #388E3C; }
-    .btn-agregar:disabled { background: #ccc; cursor: not-allowed; }
-
-    .carrito {
-      background: white;
-      margin-top: 25px;
-      padding: 15px;
-      border-radius: 15px;
-      box-shadow: 0 3px 10px rgba(0,0,0,.10);
-    }
-
-    .item-carrito { margin-bottom: 15px; }
-
-    .btn-cantidad {
-      width: 30px;
-      height: 30px;
-      border: none;
-      border-radius: 50%;
-      background: #2196F3;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .btn-cantidad:disabled {
-      background: #b0bec5;
-      cursor: not-allowed;
-    }
-
-    .resumen-totales {
-      border-top: 2px solid #eee;
-      padding-top: 10px;
-      margin-top: 15px;
-    }
-
-    .total {
-      font-size: 22px;
-      color: #2e7d32;
-      font-weight: bold;
-    }
-
-    .saldo-final {
-      font-size: 18px;
-      font-weight: bold;
-      margin-top: 5px;
-    }
-
-    .alerta-exceso {
-      background: #ffebee;
-      color: #c62828;
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: bold;
+    /* MENU PRINCIPAL */
+    .menu-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
       margin-top: 10px;
-      display: none;
+    }
+
+    .menu-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 24px;
       text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s;
     }
 
-    textarea {
-      width: 100%;
-      height: 80px;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      resize: none;
-      margin-top: 10px;
+    .menu-card:active {
+      transform: scale(0.98);
     }
 
-    .btn-enviar {
-      width: 100%;
-      background: #FF9800;
-      color: white;
-      border: none;
-      padding: 15px;
-      border-radius: 10px;
+    .menu-card.pulpería { border-color: #2196F3; }
+    .menu-card.acreditar { border-color: #4CAF50; }
+    .menu-card.consultar { border-color: #FF9800; }
+
+    .menu-card .icon { font-size: 48px; margin-bottom: 8px; }
+    .menu-card h2 { margin: 0 0 6px 0; font-size: 22px; color: var(--text); }
+    .menu-card p { margin: 0; color: var(--text-muted); font-size: 14px; }
+
+    /* CATÁLOGO RESPONSIVO (2 COLUMNAS EN MÓVIL) */
+    .catalogo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    @media (min-width: 600px) {
+      .catalogo-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+      }
+    }
+
+    .titulo-categoria {
+      grid-column: 1 / -1;
       font-size: 18px;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 4px;
       margin-top: 15px;
+      margin-bottom: 5px;
+    }
+
+    .producto-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .producto-card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+
+    .producto-content {
+      padding: 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      justify-content: space-between;
+    }
+
+    .producto-content h3 {
+      font-size: 15px;
+      margin: 0 0 6px 0;
+      min-height: 36px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .precio-tag {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--success);
+    }
+
+    .stock-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .btn-touch {
+      min-height: 44px;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-add { background: #e8f5e9; color: var(--success); }
+    .btn-add:disabled { background: #eee; color: #aaa; }
+
+    /* CARRITO */
+    .carrito-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cant-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .total-box {
+      margin-top: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: right;
+      color: var(--success);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      margin-top: 12px;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+      margin-top: 12px;
+    }
+
+    /* VISTA ACREDITAR */
+    .quick-amounts {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .btn-quick {
+      background: #e8f5e9;
+      color: var(--success);
+      border: 1px solid #c8e6c9;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
       cursor: pointer;
     }
 
-    .btn-enviar:hover { background: #F57C00; }
-    .btn-enviar:disabled { background: #ccc; cursor: not-allowed; }
+    .input-monto {
+      width: 100%;
+      padding: 14px;
+      font-size: 22px;
+      text-align: center;
+      border-radius: 12px;
+      border: 2px solid #ddd;
+      margin-bottom: 15px;
+    }
+
+    /* MODAL DE ESCANEO NFC */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      width: 100%;
+      max-width: 350px;
+    }
+
+    .nfc-animation {
+      font-size: 60px;
+      margin: 15px 0;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
   </style>
 </head>
 
 <body>
 
-  <div class="header">
-    <h1>🛒 Pulpería Familiar</h1>
-    <div class="subtitulo">Escoge tus productos favoritos</div>
-    <br>
+  <!-- BARRA DE NAVEGACIÓN -->
+  <div class="top-bar">
+    <h1 id="top-title">💳 Bóveda NFC</h1>
+    <button id="btn-home" class="btn-nav-home" onclick="mostrarVista('menu')" style="display:none;">🏠 Inicio</button>
+  </div>
 
-    <label><b>Cliente</b></label>
-    <select id="cliente" onchange="actualizarUsuarioSeleccionado()"></select>
+  <!-- VISTA 0: MENÚ PRINCIPAL -->
+  <div id="view-menu" class="view active">
+    <div class="menu-grid">
+      <div class="menu-card pulpería" onclick="mostrarVista('tienda')">
+        <div class="icon">🛒</div>
+        <h2>Entrar a la Pulpería</h2>
+        <p>Escoge productos y paga acercando tu tarjeta NFC</p>
+      </div>
 
-    <div id="infoSaldo" class="info-saldo">
-      💳 Saldo disponible: ₡<span id="saldoCliente">0</span>
+      <div class="menu-card acreditar" onclick="mostrarVista('acreditar')">
+        <div class="icon">💰</div>
+        <h2>Acreditar Dinero</h2>
+        <p>Recarga mesada o saldo en dos toques con NFC</p>
+      </div>
+
+      <div class="menu-card consultar" onclick="mostrarVista('consultar')">
+        <div class="icon">🔍</div>
+        <h2>Consultar Saldo</h2>
+        <p>Verifica cuánto dinero tienes guardado en tu tarjeta</p>
+      </div>
     </div>
   </div>
 
-  <div id="catalogo">Cargando catálogo...</div>
+  <!-- VISTA 1: TIENDA -->
+  <div id="view-tienda" class="view">
+    <div id="catalogo" class="catalogo-grid">Cargando productos...</div>
 
-  <div class="carrito">
-    <h2>🛍️ Mi Carrito</h2>
+    <div class="carrito-box">
+      <h2>🛍️ Mi Carrito</h2>
+      <div id="carrito-items">El carrito está vacío</div>
+      <div id="total-box" class="total-box">Total: ₡0</div>
 
-    <div id="carrito">Carrito vacío</div>
-
-    <div id="alertaExceso" class="alerta-exceso">
-      ⚠️ El total supera el saldo disponible del usuario.
+      <button id="btn-pagar" class="btn-touch btn-primary" onclick="iniciarProcesoPago()">
+        💳 Pagar con Tarjeta NFC
+      </button>
     </div>
-
-    <textarea id="comentario" placeholder="Comentario del pedido"></textarea>
-
-    <button id="btnEnviar" class="btn-enviar" onclick="enviarPedido()">
-      ✅ Enviar Pedido
-    </button>
   </div>
 
-<script>
-// ⚠️ SUSTITUYE ESTE ENLACE POR TU URL DE GOOGLE APPS SCRIPT (/exec)
-const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw_yy-a2sxePXUgjZMNkvKQbdaB1H76HKQybvw8y-Hpx7R2ptReDnPRwGAPKkVTd3Ji3Q/exec";
+  <!-- VISTA 2: ACREDITAR -->
+  <div id="view-acreditar" class="view">
+    <div class="carrito-box">
+      <h2>💵 Acreditar Mesada / Saldo</h2>
+      <p style="color:#666; font-size:14px;">Selecciona o digita el monto a cargar:</p>
 
-let carrito = [];
-let listaProductos = [];
-let listaUsuarios = [];
-let saldoUsuarioActual = 0;
+      <div class="quick-amounts">
+        <button class="btn-quick" onclick="sumarAcreditar(500)">+₡500</button>
+        <button class="btn-quick" onclick="sumarAcreditar(1000)">+₡1,000</button>
+        <button class="btn-quick" onclick="sumarAcreditar(2000)">+₡2,000</button>
+        <button class="btn-quick" onclick="sumarAcreditar(5000)">+₡5,000</button>
+      </div>
 
-// Carga inicial mediante fetch HTTP
-fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
-  .then(res => res.json())
-  .then(datos => {
-    cargarUsuarios(datos.usuarios);
-    cargarProductos(datos.productos);
-  })
-  .catch(err => {
-    alert("Error al cargar la información: " + err.message);
-  });
+      <input type="number" id="input-monto-acreditar" class="input-monto" placeholder="₡0" value="0">
 
-function cargarUsuarios(usuarios) {
-  listaUsuarios = usuarios || [];
-  const select = document.getElementById("cliente");
-  select.innerHTML = "";
+      <button class="btn-touch btn-success" onclick="iniciarAcreditacionNFC()">
+        📡 Escanear Tarjeta para Cargar
+      </button>
+    </div>
+  </div>
 
-  listaUsuarios.forEach(u => {
-    select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
-  });
+  <!-- VISTA 3: CONSULTAR SALDO -->
+  <div id="view-consultar" class="view">
+    <div class="carrito-box" style="text-align: center; padding: 30px 15px;">
+      <h2>🔍 Verificador de Saldo Express</h2>
+      <p style="color:#666;">Acerca la tarjeta al celular para consultar el saldo disponible</p>
 
-  actualizarUsuarioSeleccionado();
-}
+      <div id="saldo-resultado" style="display:none; margin: 20px 0;">
+        <h3 id="saldo-nombre" style="font-size: 24px; color: var(--primary); margin:0;">-</h3>
+        <div id="saldo-monto" style="font-size: 36px; font-weight: bold; color: var(--success); margin-top: 10px;">₡0</div>
+      </div>
 
-function actualizarUsuarioSeleccionado() {
-  const nombreSeleccionado = document.getElementById("cliente").value;
-  const usuario = listaUsuarios.find(u => u.nombre === nombreSeleccionado);
+      <button class="btn-touch btn-primary" onclick="iniciarConsultaNFC()">
+        📡 Escanear Tarjeta NFC
+      </button>
+    </div>
+  </div>
 
-  if (usuario) {
-    saldoUsuarioActual = usuario.saldo;
-    document.getElementById("saldoCliente").innerText = saldoUsuarioActual.toLocaleString();
-  }
-  renderCarrito();
-}
+  <!-- MODAL DE ESCANEO NFC -->
+  <div id="modal-nfc" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modal-titulo">Acerca la Tarjeta NFC</h3>
+      <div class="nfc-animation">📱✨</div>
+      <p id="modal-instruccion" style="color:#666;">Aproxime la tarjeta a la parte trasera de su teléfono...</p>
 
-function cargarProductos(productos) {
-  listaProductos = productos || [];
-  const catalogo = document.getElementById("catalogo");
-  catalogo.innerHTML = "";
+      <div id="fallback-manual" style="margin-top: 15px; display:none;">
+        <hr>
+        <p style="font-size:13px; color:#888;">¿Sin NFC? Selecciona el cliente:</p>
+        <select id="select-cliente-fallback"></select>
+        <button id="btn-confirmar-fallback" class="btn-touch btn-success" style="margin-top:10px;">Confirmar</button>
+      </div>
 
-  const categorias = listaProductos.reduce((acc, prod) => {
-    const cat = prod.categoria || "Otros";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(prod);
-    return acc;
-  }, {});
+      <button class="btn-touch" style="background:#eee; color:#333; margin-top:15px;" onclick="cerrarModalNFC()">Cancelar</button>
+    </div>
+  </div>
 
-  for (const [categoria, prods] of Object.entries(categorias)) {
-    catalogo.innerHTML += `<h2 class="titulo-categoria">📌 ${categoria}</h2>`;
+  <script>
+    // ⚠️ SUSTITUYE ESTE ENLACE POR TU URL DE GOOGLE APPS SCRIPT (/exec)
+    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw3ebDmfctZrs6z7GEsG-HhcMfY5WIXjtKa3qtj9LHgS6G0lky2GtRh_sDwRJX_kCqWog/exec";
 
-    prods.forEach(p => {
-      catalogo.innerHTML += `
-        <div class="producto">
-          <img src="${p.imagen}" alt="${p.producto}">
-          <div class="producto-info">
-            <h3>${p.producto}</h3>
-            <div class="precio">₡${p.precio}</div>
-            <div class="stock">Stock: ${p.inventario}</div>
-            <button
-              class="btn-agregar"
-              ${p.inventario <= 0 ? 'disabled' : ''}
-              onclick="agregar('${p.id}')">
-              ${p.inventario <= 0 ? 'Agotado' : '🛒 Agregar'}
-            </button>
-          </div>
-        </div>
-      `;
-    });
-  }
-}
+    let listaProductos = [];
+    let listaUsuarios = [];
+    let carrito = [];
+    let montoAcreditarActual = 0;
+    let operacionPendiente = null; // 'pago', 'acreditar', 'consultar'
 
-function agregar(id) {
-  const prod = listaProductos.find(p => p.id === id);
-  const item = carrito.find(x => x.id === id);
+    // Cargar información inicial
+    window.onload = () => {
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
+        .then(res => res.json())
+        .then(datos => {
+          listaUsuarios = datos.usuarios || [];
+          listaProductos = datos.productos || [];
+          renderCatalogo();
+          poblarFallbackClientes();
+        })
+        .catch(err => alert("Error cargando datos: " + err.message));
+    };
 
-  if (!prod) return;
+    function mostrarVista(nombreVista) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`view-${nombreVista}`).classList.add('active');
 
-  if (item) {
-    if (item.cantidad < prod.inventario) {
-      item.cantidad++;
-    } else {
-      alert("Alcanzaste el límite de stock disponible.");
+      const btnHome = document.getElementById('btn-home');
+      const topTitle = document.getElementById('top-title');
+
+      if (nombreVista === 'menu') {
+        btnHome.style.display = 'none';
+        topTitle.innerText = "💳 Bóveda NFC";
+      } else {
+        btnHome.style.display = 'block';
+        if (nombreVista === 'tienda') topTitle.innerText = "🛒 Pulpería";
+        if (nombreVista === 'acreditar') topTitle.innerText = "💰 Acreditar";
+        if (nombreVista === 'consultar') topTitle.innerText = "🔍 Consultar";
+      }
     }
-  } else {
-    if (prod.inventario > 0) {
-      carrito.push({
-        id: prod.id,
-        producto: prod.producto,
-        precio: prod.precio,
-        cantidad: 1,
-        inventario: prod.inventario
+
+    /* TIENDA Y CATÁLOGO */
+    function renderCatalogo() {
+      const catDiv = document.getElementById('catalogo');
+      catDiv.innerHTML = "";
+
+      const categorias = listaProductos.reduce((acc, p) => {
+        const cat = p.categoria || "Otros";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(p);
+        return acc;
+      }, {});
+
+      for (const [cat, prods] of Object.entries(categorias)) {
+        catDiv.innerHTML += `<div class="titulo-categoria">📌 ${cat}</div>`;
+
+        prods.forEach(p => {
+          catDiv.innerHTML += `
+            <div class="producto-card">
+              <img src="${p.imagen}" alt="${p.producto}">
+              <div class="producto-content">
+                <h3>${p.producto}</h3>
+                <div class="precio-tag">₡${p.precio}</div>
+                <div class="stock-tag">Stock: ${p.inventario}</div>
+                <button class="btn-touch btn-add" ${p.inventario <= 0 ? 'disabled' : ''} onclick="agregarAlCarrito('${p.id}')">
+                  ${p.inventario <= 0 ? 'Agotado' : '🛒 Agregar'}
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      }
+    }
+
+    function agregarAlCarrito(id) {
+      const prod = listaProductos.find(p => p.id === id);
+      if (!prod) return;
+
+      const item = carrito.find(x => x.id === id);
+      if (item) {
+        if (item.cantidad < prod.inventario) item.cantidad++;
+        else alert("Límite de stock alcanzado");
+      } else {
+        carrito.push({ id: prod.id, producto: prod.producto, precio: prod.precio, cantidad: 1, inventario: prod.inventario });
+      }
+      renderCarrito();
+    }
+
+    function renderCarrito() {
+      const container = document.getElementById('carrito-items');
+      const totalBox = document.getElementById('total-box');
+      if (carrito.length === 0) {
+        container.innerHTML = "El carrito está vacío";
+        totalBox.innerText = "Total: ₡0";
+        return;
+      }
+
+      let html = "";
+      let total = 0;
+
+      carrito.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        total += subtotal;
+
+        html += `
+          <div class="item-row">
+            <div>
+              <b>${item.producto}</b><br>
+              <small>₡${item.precio} c/u</small>
+            </div>
+            <div class="cant-controls">
+              <button class="btn-circle" onclick="modificarCantidad('${item.id}', -1)">-</button>
+              <span>${item.cantidad}</span>
+              <button class="btn-circle" onclick="modificarCantidad('${item.id}', 1)">+</button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      totalBox.innerText = `Total: ₡${total.toLocaleString()}`;
+    }
+
+    function modificarCantidad(id, cambio) {
+      const item = carrito.find(x => x.id === id);
+      if (!item) return;
+
+      item.cantidad += cambio;
+      if (item.cantidad <= 0) {
+        carrito = carrito.filter(x => x.id !== id);
+      }
+      renderCarrito();
+    }
+
+    /* ACREDITAR */
+    function sumarAcreditar(monto) {
+      const input = document.getElementById('input-monto-acreditar');
+      let actual = Number(input.value) || 0;
+      input.value = actual + monto;
+    }
+
+    /* MODAL DE ESCANEO Y WEB NFC */
+    function abrirModalNFC(operacion) {
+      operacionPendiente = operacion;
+      document.getElementById('modal-nfc').style.display = 'flex';
+      iniciarLectorNFC();
+    }
+
+    function cerrarModalNFC() {
+      document.getElementById('modal-nfc').style.display = 'none';
+      operacionPendiente = null;
+    }
+
+    function poblarFallbackClientes() {
+      const select = document.getElementById('select-cliente-fallback');
+      select.innerHTML = "";
+      listaUsuarios.forEach(u => {
+        select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
       });
     }
-  }
-  renderCarrito();
-}
 
-function aumentar(id) {
-  const item = carrito.find(x => x.id === id);
-  if (item) {
-    if (item.cantidad < item.inventario) {
-      item.cantidad++;
-      renderCarrito();
-    } else {
-      alert("No hay más unidades en stock.");
-    }
-  }
-}
+    async function iniciarLectorNFC() {
+      if ('NDEFReader' in window) {
+        try {
+          const ndef = new NDEFReader();
+          await ndef.scan();
 
-function disminuir(id) {
-  const item = carrito.find(x => x.id === id);
-  if (item) {
-    item.cantidad--;
-    if (item.cantidad <= 0) {
-      carrito = carrito.filter(x => x.id !== id);
-    }
-  }
-  renderCarrito();
-}
+          ndef.onreading = event => {
+            const uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
+            let textoNDEF = "";
 
-function renderCarrito() {
-  const div = document.getElementById("carrito");
-  const alertaExceso = document.getElementById("alertaExceso");
-  const btnEnviar = document.getElementById("btnEnviar");
-  
-  let total = 0;
-  div.innerHTML = "";
+            if (event.message && event.message.records) {
+              for (const record of event.message.records) {
+                if (record.recordType === "text") {
+                  const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+                  textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
+                }
+              }
+            }
 
-  if (carrito.length === 0) {
-    div.innerHTML = "Carrito vacío";
-    alertaExceso.style.display = "none";
-    btnEnviar.disabled = false;
-    return;
-  }
-
-  carrito.forEach(item => {
-    const subtotal = item.precio * item.cantidad;
-    total += subtotal;
-
-    div.innerHTML += `
-      <div class="item-carrito">
-        <b>${item.producto}</b>
-        <br><br>
-        <button class="btn-cantidad" onclick="disminuir('${item.id}')">-</button>
-        ${item.cantidad}
-        <button 
-          class="btn-cantidad" 
-          ${item.cantidad >= item.inventario ? 'disabled' : ''} 
-          onclick="aumentar('${item.id}')">+</button>
-        <br><br>
-        ₡${subtotal.toLocaleString()}
-      </div>
-      <hr>
-    `;
-  });
-
-  const saldoFinal = saldoUsuarioActual - total;
-
-  div.innerHTML += `
-    <div class="resumen-totales">
-      <div class="total">Total: ₡${total.toLocaleString()}</div>
-      <div class="saldo-final" style="color: ${saldoFinal < 0 ? '#c62828' : '#1565c0'}">
-        Saldo final: ₡${saldoFinal.toLocaleString()}
-      </div>
-    </div>
-  `;
-
-  if (total > saldoUsuarioActual) {
-    alertaExceso.style.display = "block";
-    btnEnviar.disabled = true;
-  } else {
-    alertaExceso.style.display = "none";
-    btnEnviar.disabled = false;
-  }
-}
-
-function enviarPedido() {
-  if (carrito.length === 0) {
-    alert("Debes agregar productos.");
-    return;
-  }
-
-  const cliente = document.getElementById("cliente").value;
-  const comentario = document.getElementById("comentario").value;
-
-  const btn = document.getElementById("btnEnviar");
-  btn.disabled = true;
-  btn.innerText = "⏳ Procesando pedido...";
-
-  const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(cliente)}&comentario=${encodeURIComponent(comentario)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
-
-  fetch(url)
-    .then(res => res.json())
-    .then(resultado => {
-      if (resultado.error) {
-        throw new Error(resultado.error);
+            procesarIdentificacion(uid || textoNDEF);
+          };
+        } catch (error) {
+          mostrarFallbackManual("Lector NFC inactivo. Selecciona manualmente.");
+        }
+      } else {
+        mostrarFallbackManual("Este navegador no soporta NFC. Selecciona el usuario:");
       }
-      alert(
-        "✅ Pedido enviado\n\n" +
-        "Pedido: " + resultado.pedidoID +
-        "\nSaldo restante: ₡" + resultado.saldoRestante.toLocaleString()
-      );
-      location.reload();
-    })
-    .catch(error => {
-      alert("❌ " + error.message);
-      btn.disabled = false;
-      btn.innerText = "✅ Enviar Pedido";
-    });
-}
-</script>
+    }
 
+    function mostrarFallbackManual(mensaje) {
+      document.getElementById('modal-instruccion').innerText = mensaje;
+      const fallbackDiv = document.getElementById('fallback-manual');
+      fallbackDiv.style.display = 'block';
+
+      document.getElementById('btn-confirmar-fallback').onclick = () => {
+        const clienteSeleccionado = document.getElementById('select-cliente-fallback').value;
+        procesarIdentificacion(clienteSeleccionado);
+      };
+    }
+
+    function procesarIdentificacion(identificador) {
+      if (!identificador) {
+        alert("No se pudo leer la tarjeta.");
+        return;
+      }
+
+      cerrarModalNFC();
+
+      if (operacionPendiente === 'pago') {
+        ejecutarPago(identificador);
+      } else if (operacionPendiente === 'acreditar') {
+        ejecutarAcreditacion(identificador);
+      } else if (operacionPendiente === 'consultar') {
+        ejecutarConsulta(identificador);
+      }
+    }
+
+    /* OPERACIONES CON SERVIDOR */
+    function iniciarProcesoPago() {
+      if (carrito.length === 0) {
+        alert("Agrega productos al carrito primero.");
+        return;
+      }
+      abrirModalNFC('pago');
+    }
+
+    function ejecutarPago(clienteID) {
+      const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(res => {
+          if (res.error) throw new Error(res.error);
+          alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
+          carrito = [];
+          renderCarrito();
+          mostrarVista('menu');
+        })
+        .catch(err => alert("❌ Error en el pago: " + err.message));
+    }
+
+    function iniciarAcreditacionNFC() {
+      const monto = Number(document.getElementById('input-monto-acreditar').value);
+      if (monto <= 0) {
+        alert("Ingresa un monto válido mayor a ₡0");
+        return;
+      }
+      abrirModalNFC('acreditar');
+    }
+
+    function ejecutarAcreditacion(clienteID) {
+      const monto = Number(document.getElementById('input-monto-acreditar').value);
+      const url = `${URL_WEB_APP}?accion=acreditarSaldo&cliente=${encodeURIComponent(clienteID)}&monto=${monto}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(res => {
+          if (res.error) throw new Error(res.error);
+          alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
+          document.getElementById('input-monto-acreditar').value = 0;
+          mostrarVista('menu');
+        })
+        .catch(err => alert("❌ Error al acreditar: " + err.message));
+    }
+
+    function iniciarConsultaNFC() {
+      abrirModalNFC('consultar');
+    }
+
+    function ejecutarConsulta(clienteID) {
+      const usuario = listaUsuarios.find(u => 
+        u.nombre.toLowerCase() === clienteID.toLowerCase() || 
+        (u.idNfc && u.idNfc.toLowerCase() === clienteID.toLowerCase())
+      );
+
+      const resBox = document.getElementById('saldo-resultado');
+      resBox.style.display = 'block';
+
+      if (usuario) {
+        document.getElementById('saldo-nombre').innerText = `👤 ${usuario.nombre}`;
+        document.getElementById('saldo-monto').innerText = `₡${usuario.saldo.toLocaleString()}`;
+      } else {
+        document.getElementById('saldo-nombre').innerText = `💳 Tarjeta / Usuario`;
+        document.getElementById('saldo-monto').innerText = `Información actualizada en servidor`;
+      }
+    }
+  </script>
 </body>
 </html>
