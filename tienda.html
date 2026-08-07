@@ -648,25 +648,32 @@
       };
     }
 
+    // Normaliza cadenas eliminando caracteres especiales (dos puntos, guiones, espacios)
+    function limpiarID(str) {
+      return String(str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    }
+
     // Busca coincidencias en listaUsuarios por UID, Texto NDEF o Nombre
     function encontrarUsuario(uid, texto, manualName) {
       if (!listaUsuarios || listaUsuarios.length === 0) return null;
 
-      return listaUsuarios.find(u => {
-        const idNfcNorm = u.idNfc ? String(u.idNfc).trim().toLowerCase() : "";
-        const nombreNorm = u.nombre ? String(u.nombre).trim().toLowerCase() : "";
+      const uidLimpio = limpiarID(uid);
+      const textoLimpio = limpiarID(texto);
+      const manualLimpio = limpiarID(manualName);
 
-        if (uid && idNfcNorm === uid.toLowerCase()) return true;
-        if (texto && (idNfcNorm === texto.toLowerCase() || nombreNorm === texto.toLowerCase())) return true;
-        if (manualName && nombreNorm === manualName.toLowerCase()) return true;
+      return listaUsuarios.find(u => {
+        const idNfcNorm = limpiarID(u.idNfc);
+        const nombreNorm = limpiarID(u.nombre);
+
+        if (uidLimpio && idNfcNorm === uidLimpio) return true;
+        if (textoLimpio && (idNfcNorm === textoLimpio || nombreNorm === textoLimpio)) return true;
+        if (manualLimpio && nombreNorm === manualLimpio) return true;
         return false;
       });
     }
 
     function procesarIdentificacion(uid = "", texto = "", manualName = "") {
       const usuarioEncontrado = encontrarUsuario(uid, texto, manualName);
-      
-      // Si se encuentra el usuario registrado usamos su nombre o ID NFC, si no, pasamos el valor leído directo
       const identificadorFinal = usuarioEncontrado ? usuarioEncontrado.nombre : (manualName || texto || uid);
 
       if (!identificadorFinal) {
@@ -739,21 +746,37 @@
     }
 
     function ejecutarConsulta(clienteID, usuarioObjeto) {
-      const usuario = usuarioObjeto || listaUsuarios.find(u => 
-        u.nombre.toLowerCase() === clienteID.toLowerCase() || 
-        (u.idNfc && String(u.idNfc).toLowerCase() === clienteID.toLowerCase())
-      );
-
       const resBox = document.getElementById('saldo-resultado');
       resBox.style.display = 'block';
 
-      if (usuario) {
-        document.getElementById('saldo-nombre').innerText = `👤 ${usuario.nombre}`;
-        document.getElementById('saldo-monto').innerText = `₡${Number(usuario.saldo || 0).toLocaleString()}`;
-      } else {
-        document.getElementById('saldo-nombre').innerText = `💳 ${clienteID}`;
-        document.getElementById('saldo-monto').innerText = `Información no localizada localmente`;
-      }
+      // 1. Mensaje provisional
+      document.getElementById('saldo-nombre').innerText = "⏳ Consultando...";
+      document.getElementById('saldo-monto').innerText = "₡...";
+
+      // 2. Búsqueda en caché local
+      const usuarioLocal = usuarioObjeto || encontrarUsuario(clienteID, clienteID, clienteID);
+
+      // 3. Consulta remota en tiempo real
+      const url = `${URL_WEB_APP}?accion=consultarSaldo&cliente=${encodeURIComponent(clienteID)}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(res => {
+          if (res.error) throw new Error(res.error);
+
+          document.getElementById('saldo-nombre').innerText = `👤 ${res.nombre || res.cliente || (usuarioLocal ? usuarioLocal.nombre : clienteID)}`;
+          document.getElementById('saldo-monto').innerText = `₡${Number(res.saldo || 0).toLocaleString()}`;
+        })
+        .catch(() => {
+          // Si falla la red, usar datos locales si existen
+          if (usuarioLocal) {
+            document.getElementById('saldo-nombre').innerText = `👤 ${usuarioLocal.nombre}`;
+            document.getElementById('saldo-monto').innerText = `₡${Number(usuarioLocal.saldo || 0).toLocaleString()}`;
+          } else {
+            document.getElementById('saldo-nombre').innerText = `💳 UID: ${clienteID}`;
+            document.getElementById('saldo-monto').innerText = `Tarjeta no registrada en Google Sheets`;
+          }
+        });
     }
   </script>
 </body>
