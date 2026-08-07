@@ -106,7 +106,7 @@
     .menu-card h2 { margin: 0 0 6px 0; font-size: 22px; color: var(--text); }
     .menu-card p { margin: 0; color: var(--text-muted); font-size: 14px; }
 
-    /* CATÁLOGO RESPONSIVO (2 COLUMNAS EN MÓVIL) */
+    /* CATÁLOGO RESPONSIVO */
     .catalogo-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -424,17 +424,20 @@
   </div>
 
   <script>
-    // ⚠️ SUSTITUYE ESTE ENLACE POR TU URL DE GOOGLE APPS SCRIPT (/exec)
     const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbw_yy-a2sxePXUgjZMNkvKQbdaB1H76HKQybvw8y-Hpx7R2ptReDnPRwGAPKkVTd3Ji3Q/exec";
 
     let listaProductos = [];
     let listaUsuarios = [];
     let carrito = [];
-    let montoAcreditarActual = 0;
     let operacionPendiente = null; // 'pago', 'acreditar', 'consultar'
+    let leyendoNFC = false;        // Bandera de bloqueo para evitar lecturas dobles
 
-    // Cargar información inicial
+    // Cargar información inicial desde Google Apps Script
     window.onload = () => {
+      cargarDatosIniciales();
+    };
+
+    function cargarDatosIniciales() {
       fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
         .then(res => res.json())
         .then(datos => {
@@ -444,7 +447,7 @@
           poblarFallbackClientes();
         })
         .catch(err => alert("Error cargando datos: " + err.message));
-    };
+    }
 
     function mostrarVista(nombreVista) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -567,6 +570,8 @@
     /* MODAL DE ESCANEO Y WEB NFC */
     function abrirModalNFC(operacion) {
       operacionPendiente = operacion;
+      document.getElementById('modal-instruccion').innerText = "Aproxime la tarjeta a la parte trasera de su teléfono...";
+      document.getElementById('fallback-manual').style.display = 'none';
       document.getElementById('modal-nfc').style.display = 'flex';
       iniciarLectorNFC();
     }
@@ -574,6 +579,7 @@
     function cerrarModalNFC() {
       document.getElementById('modal-nfc').style.display = 'none';
       operacionPendiente = null;
+      leyendoNFC = false;
     }
 
     function poblarFallbackClientes() {
@@ -585,12 +591,16 @@
     }
 
     async function iniciarLectorNFC() {
+      leyendoNFC = true;
       if ('NDEFReader' in window) {
         try {
           const ndef = new NDEFReader();
           await ndef.scan();
 
           ndef.onreading = event => {
+            if (!leyendoNFC) return; // Evitar que procese múltiples veces un mismo toque
+            leyendoNFC = false;
+
             const uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
             let textoNDEF = "";
 
@@ -660,6 +670,7 @@
           alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
           carrito = [];
           renderCarrito();
+          cargarDatosIniciales(); // Reescanea la BD para actualizar saldos/inventarios en la app
           mostrarVista('menu');
         })
         .catch(err => alert("❌ Error en el pago: " + err.message));
@@ -684,6 +695,7 @@
           if (res.error) throw new Error(res.error);
           alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
           document.getElementById('input-monto-acreditar').value = 0;
+          cargarDatosIniciales(); // Sincroniza el nuevo saldo localmente
           mostrarVista('menu');
         })
         .catch(err => alert("❌ Error al acreditar: " + err.message));
@@ -707,7 +719,7 @@
         document.getElementById('saldo-monto').innerText = `₡${usuario.saldo.toLocaleString()}`;
       } else {
         document.getElementById('saldo-nombre').innerText = `💳 Tarjeta / Usuario`;
-        document.getElementById('saldo-monto').innerText = `Información actualizada en servidor`;
+        document.getElementById('saldo-monto').innerText = `Usuario no encontrado localmente.`;
       }
     }
   </script>
