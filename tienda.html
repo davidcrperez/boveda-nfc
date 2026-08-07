@@ -484,19 +484,22 @@
     };
 
     function cargarDatosServidor() {
-      fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { method: "GET", redirect: "follow" })
-        .then(res => {
-          if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
-          return res.json();
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
+        .then(res => res.text()) // Recibir respuesta en texto plano para inspeccionar
+        .then(texto => {
+          try {
+            const datos = JSON.parse(texto);
+            listaUsuarios = datos.usuarios || [];
+            listaProductos = datos.productos || [];
+            renderCatalogo();
+            poblarFallbackClientes();
+          } catch (e) {
+            // Si no se puede interpretar como JSON, muestra lo que devolvió Google
+            alert("⚠️ Google devolvió HTML/Texto en lugar de datos:\n\n" + texto.substring(0, 200) + "...");
+          }
         })
-        .then(datos => {
-          listaUsuarios = datos.usuarios || [];
-          listaProductos = datos.productos || [];
-          renderCatalogo();
-          poblarFallbackClientes();
-        })
-        .catch(err => alert("⚠️ Error al cargar datos: " + err.message));
-    }
+        .catch(err => alert("⚠️ Error de conexión/CORS:\n" + err.message));
+    };
 
     function mostrarVista(nombreVista) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
