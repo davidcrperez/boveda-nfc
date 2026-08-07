@@ -34,7 +34,7 @@
       padding-bottom: 30px;
     }
 
-    /* BARRA SUPERIOR Y NAVEGACIÓN */
+    /* BARRA SUPERIOR */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -75,7 +75,7 @@
       display: block;
     }
 
-    /* MENU PRINCIPAL */
+    /* MENÚ PRINCIPAL */
     .menu-grid {
       display: flex;
       flex-direction: column;
@@ -106,7 +106,7 @@
     .menu-card h2 { margin: 0 0 6px 0; font-size: 22px; color: var(--text); }
     .menu-card p { margin: 0; color: var(--text-muted); font-size: 14px; }
 
-    /* CATÁLOGO RESPONSIVO (2 COLUMNAS EN MÓVIL) */
+    /* CATÁLOGO RESPONSIVO */
     .catalogo-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -239,7 +239,7 @@
     .btn-primary { background: var(--primary); color: white; margin-top: 12px; }
     .btn-success { background: var(--success); color: white; margin-top: 12px; }
 
-    /* VISTA ACREDITAR */
+    /* ACREDITAR */
     .quick-amounts {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -268,7 +268,7 @@
       margin-bottom: 15px;
     }
 
-    /* COMPONENTE DE BÓVEDA Y MONEDAS */
+    /* BÓVEDA Y MONEDAS */
     .boveda-container {
       background: #f8fafc;
       border: 2px dashed #cbd5e1;
@@ -434,7 +434,6 @@
         <h3 id="saldo-nombre" style="font-size: 24px; color: var(--primary); margin:0;">-</h3>
         <div id="saldo-monto" style="font-size: 34px; font-weight: bold; color: var(--success); margin: 8px 0;">₡0</div>
 
-        <!-- CONTENEDOR GRÁFICO DE MONEDAS Y BOLSAS -->
         <div class="boveda-container">
           <div class="boveda-seccion">
             <div class="boveda-seccion-titulo">💰 Bolsas de Dinero (₡1,000 c/u)</div>
@@ -481,16 +480,23 @@
     let operacionPendiente = null;
 
     window.onload = () => {
-      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
-        .then(res => res.json())
+      cargarDatosServidor();
+    };
+
+    function cargarDatosServidor() {
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { method: "GET", redirect: "follow" })
+        .then(res => {
+          if (!res.ok) throw new Error("No se pudo conectar con Google Sheets");
+          return res.json();
+        })
         .then(datos => {
           listaUsuarios = datos.usuarios || [];
           listaProductos = datos.productos || [];
           renderCatalogo();
           poblarFallbackClientes();
         })
-        .catch(err => alert("Error cargando datos: " + err.message));
-    };
+        .catch(err => alert("⚠️ Error al cargar datos: " + err.message));
+    }
 
     function mostrarVista(nombreVista) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -510,10 +516,37 @@
       }
     }
 
+    /* CONECTORES DE ACCIONES */
+    function iniciarProcesoPago() {
+      if (carrito.length === 0) {
+        alert("🛒 El carrito está vacío. Agrega productos primero.");
+        return;
+      }
+      abrirModalNFC('pago');
+    }
+
+    function iniciarAcreditacionNFC() {
+      const monto = Number(document.getElementById('input-monto-acreditar').value);
+      if (monto <= 0) {
+        alert("💰 Por favor ingresa un monto mayor a ₡0.");
+        return;
+      }
+      abrirModalNFC('acreditar');
+    }
+
+    function iniciarConsultaNFC() {
+      abrirModalNFC('consultar');
+    }
+
     /* TIENDA Y CATÁLOGO */
     function renderCatalogo() {
       const catDiv = document.getElementById('catalogo');
       catDiv.innerHTML = "";
+
+      if (listaProductos.length === 0) {
+        catDiv.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No hay productos disponibles.</p>";
+        return;
+      }
 
       const categorias = listaProductos.reduce((acc, p) => {
         const cat = p.categoria || "Otros";
@@ -625,6 +658,7 @@
 
     function poblarFallbackClientes() {
       const select = document.getElementById('select-cliente-fallback');
+      if (!select) return;
       select.innerHTML = "";
       listaUsuarios.forEach(u => {
         select.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
@@ -684,14 +718,13 @@
       else if (operacionPendiente === 'consultar') ejecutarConsulta(identificador);
     }
 
-    /* LÓGICA GRÁFICA DE LA BÓVEDA (BOLSAS Y MONEDAS) */
+    /* DESGLOSE GRÁFICO DE BÓVEDA */
     function renderizarBovedaGrafica(montoTotal) {
       const bolsasDiv = document.getElementById('boveda-bolsas');
       const monedasDiv = document.getElementById('boveda-monedas');
 
       let monto = Math.max(Number(montoTotal) || 0, 0);
 
-      // Desglose: Bolsas (₡1,000), Monedas ₡100, Monedas ₡50
       const bolsas1000 = Math.floor(monto / 1000);
       let resto = monto % 1000;
 
@@ -701,7 +734,6 @@
       const monedas50 = Math.floor(resto / 50);
       const monedasSueltas = resto % 50;
 
-      // Render de Bolsas
       if (bolsas1000 > 0) {
         let htmlBolsas = "";
         for (let i = 0; i < Math.min(bolsas1000, 10); i++) {
@@ -715,33 +747,24 @@
         bolsasDiv.innerHTML = `<span style="font-size:14px; color:#aaa;">Sin bolsas acumuladas</span>`;
       }
 
-      // Render de Monedas
       let htmlMonedas = "";
-      if (monedas100 > 0) {
-        htmlMonedas += `<span class="boveda-chip">🪙 ${monedas100} de ₡100</span> `;
-      }
-      if (monedas50 > 0) {
-        htmlMonedas += `<span class="boveda-chip">🪙 ${monedas50} de ₡50</span> `;
-      }
-      if (monedasSueltas > 0) {
-        htmlMonedas += `<span class="boveda-chip">🪙 ₡${monedasSueltas} sueltos</span>`;
-      }
+      if (monedas100 > 0) htmlMonedas += `<span class="boveda-chip">🪙 ${monedas100} de ₡100</span> `;
+      if (monedas50 > 0) htmlMonedas += `<span class="boveda-chip">🪙 ${monedas50} de ₡50</span> `;
+      if (monedasSueltas > 0) htmlMonedas += `<span class="boveda-chip">🪙 ₡${monedasSueltas} sueltos</span>`;
 
-      if (!htmlMonedas) {
-        htmlMonedas = `<span style="font-size:14px; color:#aaa;">Sin monedas sueltas</span>`;
-      }
+      if (!htmlMonedas) htmlMonedas = `<span style="font-size:14px; color:#aaa;">Sin monedas sueltas</span>`;
 
       monedasDiv.innerHTML = htmlMonedas;
     }
 
-    /* PETICIONES AL SERVIDOR CON ACTUALIZACIÓN EN TIEMPO REAL */
+    /* OPERACIONES CON EL SERVIDOR */
     function ejecutarConsulta(clienteID) {
       const resBox = document.getElementById('saldo-resultado');
       resBox.style.display = 'block';
-      document.getElementById('saldo-nombre').innerText = "🔍 Buscando en servidor...";
+      document.getElementById('saldo-nombre').innerText = "🔍 Buscando...";
       document.getElementById('saldo-monto').innerText = "₡...";
 
-      fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
+      fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" })
         .then(res => res.json())
         .then(datos => {
           listaUsuarios = datos.usuarios || [];
@@ -769,13 +792,13 @@
       const monto = Number(document.getElementById('input-monto-acreditar').value);
       const url = `${URL_WEB_APP}?accion=acreditarSaldo&cliente=${encodeURIComponent(clienteID)}&monto=${monto}`;
 
-      fetch(url)
+      fetch(url, { redirect: "follow" })
         .then(res => res.json())
         .then(res => {
           if (res.error) throw new Error(res.error);
           alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
           document.getElementById('input-monto-acreditar').value = 0;
-          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" });
         })
         .then(res => res ? res.json() : null)
         .then(datos => {
@@ -791,14 +814,14 @@
     function ejecutarPago(clienteID) {
       const url = `${URL_WEB_APP}?accion=guardarPedido&cliente=${encodeURIComponent(clienteID)}&carrito=${encodeURIComponent(JSON.stringify(carrito))}`;
 
-      fetch(url)
+      fetch(url, { redirect: "follow" })
         .then(res => res.json())
         .then(res => {
           if (res.error) throw new Error(res.error);
           alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
           carrito = [];
           renderCarrito();
-          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`);
+          return fetch(`${URL_WEB_APP}?accion=obtenerDatos`, { redirect: "follow" });
         })
         .then(res => res ? res.json() : null)
         .then(datos => {
