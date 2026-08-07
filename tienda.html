@@ -106,7 +106,7 @@
     .menu-card h2 { margin: 0 0 6px 0; font-size: 22px; color: var(--text); }
     .menu-card p { margin: 0; color: var(--text-muted); font-size: 14px; }
 
-    /* CATÁLOGO RESPONSIVO */
+    /* CATÁLOGO RESPONSIVO (2 COLUMNAS EN MÓVIL) */
     .catalogo-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -429,15 +429,11 @@
     let listaProductos = [];
     let listaUsuarios = [];
     let carrito = [];
-    let operacionPendiente = null; // 'pago', 'acreditar', 'consultar'
-    let leyendoNFC = false;        // Bandera de bloqueo para evitar lecturas dobles
+    let operacionPendiente = null;
+    let nfcAbortController = null;
 
-    // Cargar información inicial desde Google Apps Script
+    // Cargar información inicial
     window.onload = () => {
-      cargarDatosIniciales();
-    };
-
-    function cargarDatosIniciales() {
       fetch(`${URL_WEB_APP}?accion=obtenerDatos`)
         .then(res => res.json())
         .then(datos => {
@@ -447,7 +443,7 @@
           poblarFallbackClientes();
         })
         .catch(err => alert("Error cargando datos: " + err.message));
-    }
+    };
 
     function mostrarVista(nombreVista) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -577,9 +573,12 @@
     }
 
     function cerrarModalNFC() {
+      if (nfcAbortController) {
+        nfcAbortController.abort();
+        nfcAbortController = null;
+      }
       document.getElementById('modal-nfc').style.display = 'none';
       operacionPendiente = null;
-      leyendoNFC = false;
     }
 
     function poblarFallbackClientes() {
@@ -591,32 +590,47 @@
     }
 
     async function iniciarLectorNFC() {
-      leyendoNFC = true;
+      if (nfcAbortController) {
+        nfcAbortController.abort();
+      }
+      nfcAbortController = new AbortController();
+
       if ('NDEFReader' in window) {
         try {
           const ndef = new NDEFReader();
-          await ndef.scan();
+          await ndef.scan({ signal: nfcAbortController.signal });
+
+          ndef.onreadingerror = () => {
+            document.getElementById('modal-instruccion').innerText = "⚠️ Error leyendo la tarjeta. Intente de nuevo.";
+          };
 
           ndef.onreading = event => {
-            if (!leyendoNFC) return; // Evitar que procese múltiples veces un mismo toque
-            leyendoNFC = false;
-
             const uid = event.serialNumber ? event.serialNumber.replace(/:/g, '').toLowerCase() : "";
             let textoNDEF = "";
 
             if (event.message && event.message.records) {
               for (const record of event.message.records) {
                 if (record.recordType === "text") {
-                  const textDecoder = new TextDecoder(record.encoding || 'utf-8');
-                  textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
+                  try {
+                    // Remover prefijo de idioma en registros NDEF Text
+                    const dataView = new DataView(record.data.buffer);
+                    const langLen = dataView.getUint8(0) & 0x3F;
+                    const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+                    textoNDEF = textDecoder.decode(new Uint8Array(record.data.buffer, 1 + langLen)).trim().toLowerCase();
+                  } catch (e) {
+                    const textDecoder = new TextDecoder();
+                    textoNDEF = textDecoder.decode(record.data).trim().toLowerCase();
+                  }
                 }
               }
             }
 
-            procesarIdentificacion(uid || textoNDEF);
+            procesarIdentificacion(uid, textoNDEF, "");
           };
         } catch (error) {
-          mostrarFallbackManual("Lector NFC inactivo. Selecciona manualmente.");
+          if (error.name !== 'AbortError') {
+            mostrarFallbackManual("Lector NFC inactivo o permiso denegado.");
+          }
         }
       } else {
         mostrarFallbackManual("Este navegador no soporta NFC. Selecciona el usuario:");
@@ -630,24 +644,45 @@
 
       document.getElementById('btn-confirmar-fallback').onclick = () => {
         const clienteSeleccionado = document.getElementById('select-cliente-fallback').value;
-        procesarIdentificacion(clienteSeleccionado);
+        procesarIdentificacion("", "", clienteSeleccionado);
       };
     }
 
-    function procesarIdentificacion(identificador) {
-      if (!identificador) {
-        alert("No se pudo leer la tarjeta.");
+    // Busca coincidencias en listaUsuarios por UID, Texto NDEF o Nombre
+    function encontrarUsuario(uid, texto, manualName) {
+      if (!listaUsuarios || listaUsuarios.length === 0) return null;
+
+      return listaUsuarios.find(u => {
+        const idNfcNorm = u.idNfc ? String(u.idNfc).trim().toLowerCase() : "";
+        const nombreNorm = u.nombre ? String(u.nombre).trim().toLowerCase() : "";
+
+        if (uid && idNfcNorm === uid.toLowerCase()) return true;
+        if (texto && (idNfcNorm === texto.toLowerCase() || nombreNorm === texto.toLowerCase())) return true;
+        if (manualName && nombreNorm === manualName.toLowerCase()) return true;
+        return false;
+      });
+    }
+
+    function procesarIdentificacion(uid = "", texto = "", manualName = "") {
+      const usuarioEncontrado = encontrarUsuario(uid, texto, manualName);
+      
+      // Si se encuentra el usuario registrado usamos su nombre o ID NFC, si no, pasamos el valor leído directo
+      const identificadorFinal = usuarioEncontrado ? usuarioEncontrado.nombre : (manualName || texto || uid);
+
+      if (!identificadorFinal) {
+        alert("No se pudo identificar la tarjeta ni el usuario.");
         return;
       }
 
+      const operacionActual = operacionPendiente;
       cerrarModalNFC();
 
-      if (operacionPendiente === 'pago') {
-        ejecutarPago(identificador);
-      } else if (operacionPendiente === 'acreditar') {
-        ejecutarAcreditacion(identificador);
-      } else if (operacionPendiente === 'consultar') {
-        ejecutarConsulta(identificador);
+      if (operacionActual === 'pago') {
+        ejecutarPago(identificadorFinal);
+      } else if (operacionActual === 'acreditar') {
+        ejecutarAcreditacion(identificadorFinal);
+      } else if (operacionActual === 'consultar') {
+        ejecutarConsulta(identificadorFinal, usuarioEncontrado);
       }
     }
 
@@ -670,7 +705,6 @@
           alert(`✅ ¡Pago Exitoso!\n\nCliente: ${res.cliente}\nPedido: ${res.pedidoID}\nSaldo restante: ₡${res.saldoRestante.toLocaleString()}`);
           carrito = [];
           renderCarrito();
-          cargarDatosIniciales(); // Reescanea la BD para actualizar saldos/inventarios en la app
           mostrarVista('menu');
         })
         .catch(err => alert("❌ Error en el pago: " + err.message));
@@ -695,7 +729,6 @@
           if (res.error) throw new Error(res.error);
           alert(`🎉 ¡Saldo Acreditado!\n\nCliente: ${res.cliente}\nRecarga: ₡${res.montoAcreditado.toLocaleString()}\nNuevo Saldo: ₡${res.nuevoSaldo.toLocaleString()}`);
           document.getElementById('input-monto-acreditar').value = 0;
-          cargarDatosIniciales(); // Sincroniza el nuevo saldo localmente
           mostrarVista('menu');
         })
         .catch(err => alert("❌ Error al acreditar: " + err.message));
@@ -705,10 +738,10 @@
       abrirModalNFC('consultar');
     }
 
-    function ejecutarConsulta(clienteID) {
-      const usuario = listaUsuarios.find(u => 
+    function ejecutarConsulta(clienteID, usuarioObjeto) {
+      const usuario = usuarioObjeto || listaUsuarios.find(u => 
         u.nombre.toLowerCase() === clienteID.toLowerCase() || 
-        (u.idNfc && u.idNfc.toLowerCase() === clienteID.toLowerCase())
+        (u.idNfc && String(u.idNfc).toLowerCase() === clienteID.toLowerCase())
       );
 
       const resBox = document.getElementById('saldo-resultado');
@@ -716,10 +749,10 @@
 
       if (usuario) {
         document.getElementById('saldo-nombre').innerText = `👤 ${usuario.nombre}`;
-        document.getElementById('saldo-monto').innerText = `₡${usuario.saldo.toLocaleString()}`;
+        document.getElementById('saldo-monto').innerText = `₡${Number(usuario.saldo || 0).toLocaleString()}`;
       } else {
-        document.getElementById('saldo-nombre').innerText = `💳 Tarjeta / Usuario`;
-        document.getElementById('saldo-monto').innerText = `Usuario no encontrado localmente.`;
+        document.getElementById('saldo-nombre').innerText = `💳 ${clienteID}`;
+        document.getElementById('saldo-monto').innerText = `Información no localizada localmente`;
       }
     }
   </script>
