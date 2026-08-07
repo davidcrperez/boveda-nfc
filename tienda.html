@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda Bóveda Digital</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f172a; color: white; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; padding: 20px;
+    }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 1.8rem; color: #f8fafc; }
+    .header p { color: #94a3b8; font-size: 0.9rem; margin-top: 4px; }
+
+    /* Catálogo de Productos */
+    .catalog {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+      width: 100%; max-width: 420px; margin-bottom: 20px;
+    }
+    .product-card {
+      background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+      padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .product-card:active { transform: scale(0.95); background: #334155; }
+    .product-icon { font-size: 2.2rem; margin-bottom: 5px; }
+    .product-title { font-weight: 600; font-size: 0.95rem; color: #e2e8f0; }
+    .product-price { font-weight: bold; color: #10b981; margin-top: 4px; }
+
+    /* Seccion del Carrito / Total */
+    .cart-box {
+      background: #1e293b; border: 2px solid #3b82f6; border-radius: 20px;
+      padding: 20px; width: 100%; max-width: 420px; text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .total-label { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; }
+    .total-amount { font-size: 2.8rem; font-weight: 900; color: #38bdf8; margin: 5px 0 15px 0; }
+    
+    .btn-action {
+      border: none; padding: 16px; font-size: 1.1rem; font-weight: bold;
+      border-radius: 14px; width: 100%; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-pay { background: #2563eb; color: white; margin-bottom: 10px; }
+    .btn-pay:active { background: #1d4ed8; }
+    .btn-clear { background: #334155; color: #cbd5e1; font-size: 0.9rem; padding: 10px; }
+
+    /* Modales */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px; text-align: center;
+    }
+    .nfc-pulse {
+      width: 90px; height: 90px; background: #2563eb; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 2.5rem;
+      margin-bottom: 20px; animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .result-card {
+      background: #1e293b; border-radius: 24px; padding: 25px;
+      width: 100%; max-width: 380px; border: 1px solid #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>🛒 Tienda Digital</h1>
+    <p>Selecciona los artículos y cobra con la tarjeta NFC</p>
+  </div>
+
+  <!-- Catálogo de Productos Rapidos -->
+  <div class="catalog">
+    <div class="product-card" onclick="agregarMonto(100, '🧃 Jugo')">
+      <div class="product-icon">🧃</div>
+      <div class="product-title">Jugo / Snack</div>
+      <div class="product-price">+₡100</div>
+    </div>
+    <div class="product-card" onclick="agregarMonto(200, '🍿 Palomitas')">
+      <div class="product-icon">🍿</div>
+      <div class="product-title">Palomitas</div>
+      <div class="product-price">+₡200</div>
+    </div>
+    <div class="product-card" onclick="agregarMonto(500, '🍦 Helado')">
+      <div class="product-icon">🍦</div>
+      <div class="product-title">Helado</div>
+      <div class="product-price">+₡500</div>
+    </div>
+    <div class="product-card" onclick="agregarMonto(1000, '🎮 Tiempo Juego')">
+      <div class="product-icon">🎮</div>
+      <div class="product-title">Extra Pantalla</div>
+      <div class="product-price">+₡1,000</div>
+    </div>
+  </div>
+
+  <!-- Carrito de Cobro -->
+  <div class="cart-box">
+    <div class="total-label">Total a Cobrar</div>
+    <div id="montoTotal" class="total-amount">₡0</div>
+    <button class="btn-action btn-pay" onclick="iniciarCobro()">💳 Cobrar con NFC</button>
+    <button class="btn-action btn-clear" onclick="limpiarCarrito()">Vaciar Carrito</button>
+  </div>
+
+  <!-- Modal Lectura NFC -->
+  <div id="modalLectura" class="modal-overlay">
+    <div class="nfc-pulse">📲</div>
+    <h2>Acerca la tarjeta para pagar</h2>
+    <p id="subtituloCobro" style="color: #94a3b8; margin-top: 8px;">Se cobrarán ₡0</p>
+    <button class="btn-action btn-clear" onclick="cerrarModales()" style="margin-top: 25px; width: auto;">Cancelar</button>
+  </div>
+
+  <!-- Modal Resultado -->
+  <div id="modalResultado" class="modal-overlay">
+    <div class="result-card">
+      <h2 id="tituloResultado" style="margin-bottom: 10px;">¡Pago Exitoso!</h2>
+      <p id="mensajeCliente" style="font-size: 1.1rem; color: #e2e8f0; margin-bottom: 15px;"></p>
+      <div style="background: #0f172a; border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+        <span style="color: #94a3b8; font-size: 0.85rem;">Nuevo Saldo Disponible:</span>
+        <div id="nuevoSaldoTexto" style="font-size: 2rem; font-weight: bold; color: #10b981;">₡0</div>
+      </div>
+      <button class="btn-action btn-pay" onclick="cerrarModales(); limpiarCarrito();">Aceptar</button>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ REEMPLAZA ESTA URL CON TU LINK REAL DE GOOGLE APPS SCRIPT (TERMINADO EN /exec)
+    const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbwieyTaBUnjZDfvrKdtZIV648lhBih5UEOhI7gS84Or1MEki4laaD2G6VfNIFVofoEJJw/exec";
+
+    let total = 0;
+    let ndefController = null;
+
+    function agregarMonto(monto, nombre) {
+      total += monto;
+      actualizarPantallaTotal();
+    }
+
+    function limpiarCarrito() {
+      total = 0;
+      actualizarPantallaTotal();
+    }
+
+    function actualizarPantallaTotal() {
+      document.getElementById('montoTotal').innerText = "₡" + total.toLocaleString();
+    }
+
+    async function iniciarCobro() {
+      if (total <= 0) {
+        alert("⚠️ Selecciona al menos un producto para cobrar.");
+        return;
+      }
+
+      if (!('NDEFReader' in window)) {
+        alert("⚠️ Web NFC no está disponible. Usa Chrome en Android.");
+        return;
+      }
+
+      document.getElementById('subtituloCobro').innerText = `Total a descontar: ₡${total.toLocaleString()}`;
+      document.getElementById('modalLectura').style.display = 'flex';
+
+      try {
+        ndefController = new AbortController();
+        const ndef = new NDEFReader();
+        await ndef.scan({ signal: ndefController.signal });
+
+        ndef.addEventListener("reading", ({ message, serialNumber }) => {
+          let idNfc = serialNumber || "";
+          for (const record of message.records) {
+            if (record.recordType === "text") {
+              const textDecoder = new TextDecoder(record.encoding || "utf-8");
+              idNfc = textDecoder.decode(record.data);
+            }
+          }
+
+          if (idNfc) {
+            procesarPago(idNfc);
+          } else {
+            alert("No se pudo leer la tarjeta.");
+            cerrarModales();
+          }
+        });
+
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          alert("Error NFC: " + error.message);
+          cerrarModales();
+        }
+      }
+    }
+
+    function procesarPago(idNfc) {
+      const url = `${URL_WEB_APP}?accion=comprar&idNfc=${encodeURIComponent(idNfc)}&monto=${total}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          cerrarModales();
+          if (data.exito) {
+            document.getElementById('tituloResultado').innerText = "✅ ¡Pago Exitoso!";
+            document.getElementById('mensajeCliente').innerText = `Gracias ${data.nombre}, cobro procesado.`;
+            document.getElementById('nuevoSaldoTexto').innerText = "₡" + data.nuevoSaldo.toLocaleString();
+          } else {
+            document.getElementById('tituloResultado').innerText = "❌ Error en el Pago";
+            document.getElementById('mensajeCliente').innerText = data.mensaje;
+            document.getElementById('nuevoSaldoTexto').innerText = "--";
+          }
+          document.getElementById('modalResultado').style.display = 'flex';
+        })
+        .catch(err => {
+          cerrarModales();
+          alert("Error al conectar con la base de datos: " + err.message);
+        });
+    }
+
+    function cerrarModales() {
+      if (ndefController) ndefController.abort();
+      document.getElementById('modalLectura').style.display = 'none';
+      document.getElementById('modalResultado').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
